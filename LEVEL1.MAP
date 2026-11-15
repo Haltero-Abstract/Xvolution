@@ -1,0 +1,206 @@
+; SHOTEMUP level map - made by PCB2MAP.PY from a real Atari board
+; source : Gerber files of atari800xl
+; scale 6.35 mm per tile, board turned 90 degrees, columns 0..36 of 37 kept
+; components omitted : K=176 R=19
+; see CREDITS.TXT for the licences of the source boards
+SEU 1
+THEME a8
+SIZE 37 62
+.....................................
+.....................................
+.....................................
+.....................................
+..r-----------T-----------T7r7.......
+r-J#o#o#oo#o##o#o#oo#oo##r++++T7.....
+ETT-----T----------T-T---+3E+3E3.....
+|E+T-T--W--h---h---W-W--T3E++3E3.....
+|v|LT3Or---h-h-h----T-T7oivvv|E3.....
+|v|pLJr3rTT-T-T-TTTT+h+J.iiE+3E3.....
+||E---+WJL+T+h+T+W+++h+7piv|E3E3.....
+iv|oaaJrT-WW+-+WW-WWW-3o.||E+3E3.....
+|v|o.oT++---+TW-T-T--hWTa3||E3EJ.....
+|v|E7.L+3r-aW+o.|.E----J.|iE+3E7.....
+iv|L+TT+J|r-TWo.ETJo-7o..|E+3|v|.....
+|v|oLWWJpEWaW-o.||o..EWo.||E3|v|.....
+|v||r-a-T+----TT3EJ.oo.p.E3|vvv|.....
+iv|E3toT++7po.iE+W7rWop..E+++3||.....
+|v|LWT-++WWaWTW+W-3ir-a-oE+JL3||.....
+||Eor+TW+--h-W7|p.LJET---+3##|v|.....
+E3|r+JE7LT----J|p.op||###||##|E3.....
+E3|o|.LW7L7.r-7|p.o.E3###||##||o.....
+|v|r3.o-W7LTJo|E---T+J###||##|L7.....
+iv|LJ.o--Wo|oJL3...L3####E3##|rJ.....
+|v|r7.oo..r+-o.L----W----W3##||......
+|v|E+TTo..||.po-o..ooTTa-7Eo#||......
+iv|E++W-ao||..o7r--W-++-7||##||......
+|E++++-hha3L7ooE+op..EJ.|||##||......
+|v|EW+hhao|#LW+W+Topp|..||i##||......
+i|EW-Wh-aa3#r-JrW3...|..|||##||......
+|v|r--a7..L-Wh-W-Jppp|o7|||#o3|......
+||E+--T+-T-h-hh-----TJr+J|i##||......
+|E++7r+3.Ea-Ta--Tor-3.||.||#o3|......
+i|EJ|E++TW-TWTa-W-W-3rW+o||##||......
+||E7||E+W-TJoWotrT-oLJ.Eo|L-aWJ......
+E3E3||iEa-W-T---WWha-a-3.E----7......
+||E3||vi.oaTWhhT7o--hhTJ.L---TWo.....
+||E3||E+T-aW-hhWWT7oa-J.....rWao.....
+i|E3|LW++hTT-hhaT++-a7.....r+Tao.....
+|vv|LToLWh+Whhh-+++7.L-o..r++Wao.....
+||E+-Wa--hW-hh-T++++a-h---W++-ao.....
+||EW-TaTT-aTa-T++++WahhT--T++Tao.....
+iv|oo|r+W--WTTWW+++-T--+7r++++ao.....
+|v|ooL+W7.rTWW7.L++-+a7EWWW+++ao.....
+||E-ao|r+oE3pr+7.L+T+TWW---WW+To.....
+E3|r-oE+W-WWTWW3.pLW+W--T---TWWo.....
+E3|E7.E+T7.rWa-3.p.r+-T-W7..|........
+|E+WWTW+++T+---J.po+WT+ha+aTWT7......
+iv|o.LT+W+++haTo.p.Ea+W-o|#E-WJ......
+||EWT-J|r+WW-7Loo7.E-WTao|o|.........
+||L-Wh-+++---3...|.E--Wao|r3.........
+E+-----J||.r7E7r-Wo|..o7.|E3.........
+E+-----aW+-WW+WW---+---+-JE+T7.......
+|o#######ot#r3to###o###|##L3|E7......
+L-TTTTT-TT--WW---------W-TTJ|o|......
+.rWWWWW-W3...............LJrJrJ......
+oW----TTo|........ppppppp..|.|.......
+..pp.p||.|..p..o...........L-J.......
+.....o3|po....r3.....................
+..ooo.|E------WW---op................
+.oooor+3ooo..........................
+.....LJoooo..........................
+C R 25 5
+C V 27 5
+C V 6 6
+C R 8 6
+C R 11 6
+C R 17 6
+C K 29 6
+C R 4 7
+C M 8 7
+C M 10 7
+C R 14 7
+C R 22 7
+C M 12 8
+C M 14 8
+C M 16 8
+C M 18 8
+C M 20 8
+C M 22 8
+C R 4 9
+C R 29 9
+C R 26 10
+C V 28 10
+C R 7 11
+C R 10 11
+C M 10 12
+C M 12 12
+C R 19 12
+C R 22 12
+C R 26 12
+C P 3 13 GTIA
+C R 8 13
+C R 16 13
+C K 27 14
+C D 15 15
+C K 17 15
+C R 19 15
+C R 22 15
+C V 29 15
+C R 27 16
+C K 12 17
+C K 14 17
+C R 17 17
+C M 13 18
+C K 27 18
+C R 17 19
+C V 19 19
+C R 4 20
+C R 11 21
+C K 15 21
+C R 17 21
+C P 3 23 *ANTIC
+C R 11 23
+C R 16 23
+C R 11 25
+C R 14 25
+C K 18 25
+C K 20 25
+C R 22 26
+C K 13 27
+C R 15 27
+C K 18 27
+C R 2 28
+C D 8 28
+C O 15 28
+C V 28 29
+C V 30 29
+C K 3 30
+C K 5 30
+C M 14 30
+C K 17 30
+C K 21 30
+C K 19 31
+C R 1 32
+C R 12 32
+C R 16 32
+C H 20 32
+C P 3 33 *6502C
+C R 7 33
+C D 9 33
+C D 11 33
+C M 16 33
+C D 18 33
+C R 20 33
+C H 22 33
+C D 13 34
+C R 7 35
+C R 9 38
+C R 12 41
+C K 15 43
+C R 1 44
+C P 3 44 PIA
+C P 8 44 POKEY
+C K 13 44
+C K 17 44
+C K 15 45
+C K 7 46
+C K 13 46
+C D 20 46 OS_ROM
+C D 23 46 BASIC_ROM
+C R 2 48
+C R 6 48
+C K 9 48
+C K 11 48
+C R 13 48
+C M 10 49
+C M 14 49
+C R 7 51
+C R 12 51
+C R 20 51
+C R 23 51
+C K 7 53
+C V 28 53
+C K 2 54
+C K 5 54
+C H 9 54
+C H 14 54
+C R 7 55
+C H 9 55
+C H 14 55
+C R 25 55
+C R 1 56
+C K 4 56
+C H 10 56
+C K 14 57
+C K 0 58
+C K 3 58
+C K 6 58
+C K 9 58
+C K 17 58
+C K 22 58
+C K 25 58
+C K 1 60
+C K 3 60
+C K 6 61
+C K 9 61
+END

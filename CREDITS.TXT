@@ -1,0 +1,48 @@
+XVOLUTION - level maps made from real Atari motherboards
+=======================================================
+
+The 4 level maps (LEVEL1..4.MAP) are simplified, re-drawn derivatives
+(tile grid, generic component sprites) of the following board designs.
+They are made with OUTILS/PCB2MAP.PY. Non-commercial use only (see below).
+
+LEVEL1.MAP - Atari 800XL
+  Source : "Atari 800XL PCB remake" v1.1 by Marek L (ezcontents.org)
+           https://github.com/marekl123/atari800xl  (gerbers/ : top copper,
+           outline, drill files ; the components are found from the drill holes
+           by OUTILS/GERB2MAP.PY)
+  Licence: Creative Commons Attribution-ShareAlike 2.0 (CC BY-SA 2.0)
+           https://creativecommons.org/licenses/by-sa/2.0/
+           Attribution required ; a map derived from it is shared under the
+           same licence.
+  (The former 130XE map, from pmandes' atari-130xe-replica, CC BY-NC-ND 4.0,
+   is kept only as anciennes_cartes/LEVEL1_130XE.MAP and is not used.)
+
+LEVEL2.MAP - Atari 520 ST
+  Source : "Sporniket's conversion of the schematics of the 'Atari 260ST/520ST'
+           computer into Kicad", by Sporniket (kicad-conversions--atari-260-520-st-
+           motherboard), file motherboard.kicad_pcb
+  Licence: CC0 1.0 Universal (public domain dedication) - credit given anyway.
+
+LEVEL3.MAP - Atari STE
+  Source : "Sporniket's conversion of the schematics of the 'Atari STE' computer
+           into Kicad", by Sporniket, file motherboard.kicad_pcb
+  Licence: CC0 1.0 Universal (public domain dedication) - credit given anyway.
+
+LEVEL4.MAP - Atari Falcon 030
+  Source : ReFalcon — Atari Falcon 030 Recreation Project, Created by Steve Suavek
+           (cam/ Gerber 6000825_R1.1(RC) top copper + drill + outline, and the
+           pick & place file ; top-side components only)
+  Licence: ReFalcon Educational & Non-Commercial License v1.0,
+           Copyright (c) 2026 Steve Suavek. Full text : REFALCON.LIC
+           (copy of LICENSE.md). Attribution required, no commercial use.
+
+MUSIC (ZIK\)
+  ELYSIUM.MOD (levels, DSP replay by Simplet / Fatal Design)
+           "elysium" composed by Jester of Sanity (Volker Tripp).
+           The module asks to write to him to use it in a production.
+  PWRBOAT.ORG (menu, YM2149)
+           COSO player + music by Jochen Hippel (Mad Max), Power Boat intro,
+           as dumped from memory (same file as in 3Dreams). Its ST-only YM
+           writes are patched for the Falcon when loaded (file unchanged).
+
+Atari, 800XL, 130XE, 520 ST, STE and Falcon 030 are trademarks of their owners.

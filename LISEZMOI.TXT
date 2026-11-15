@@ -1,0 +1,33 @@
+XVOLUTION v0.1 - shoot'em up vertical en 3D pour Falcon 030 + DSP
+(inspire de Wings of Death, Thalion 1990)  -  Haltero / Abstract
+
+FICHIERS
+  XVOLUTION.S    programme principal (jeu, decor, HUD)
+  PARAMS.S      tous les reglages (vitesses, vies, ennemis, couleurs du sol)
+  DSP3D.S       interface 030 <-> DSP (reprise telle quelle de RICK3D)
+  AMIGADSP.S    replay MOD DSP de Simplet (+ AMIGADSP.P56)
+  R3D.P56       maths 3D du DSP (assemble depuis OUTILS\R3D.A56)
+  OUTILS\       ASM56.PY (assembleur DSP), R3D.A56
+
+ASSEMBLER
+  DSP  : python OUTILS\ASM56.PY OUTILS\R3D.A56 R3D.P56
+  030  : rg-asm --dialect=devpac3 --cpu=68030 --prg -o XVOLUTION.PRG XVOLUTION.S
+         (ou Devpac 3 sous Hatari : XVOLUTION.S, sortie executable)
+  R3D.P56 et AMIGADSP.P56 doivent etre dans le meme dossier que XVOLUTION.S.
+
+COMMANDES
+  Manette port 1 (gauche) : deplacer, bouton = tirer
+  ESC quitter   P pause   D maths 3D par le DSP / par le 030
+  H barre du bas (FPS, mode 3D, forme, vies, X Y, ennemis, tirs...)
+
+JEU (niveau 1)
+  Le robot-vaisseau a 3 formes : sonde (1 tir), chasseur (2 tirs),
+  lourd (3 tirs en eventail). Une capsule jaune tombe tous les 8 ennemis
+  detruits : la ramasser fait evoluer le vaisseau (+500). Touche, il
+  redescend d'une forme ; touche en forme sonde, il perd une vie.
+  Drone rouge 100 pts (1 coup), croiseur violet 200 pts (3 coups).
+
+LIMITES v0.1
+  Pas encore de musique (le replay est charge, pas lance).
+  VGA 320x240 ; en RGB/TV l'ecran est en 320x200 (bas coupe).
+  Decor redessine en entier a chaque image (a optimiser ensuite).

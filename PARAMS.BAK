@@ -1,0 +1,59 @@
+;=====================================================================
+; PARAMS.S - SHOTEMUP SETTINGS (change here, then assemble SHOTEMUP.S)
+;   World units : 1 unit = about 1 pixel on the ship plane (Z = SHIP_Z)
+;   Speeds in units per frame (60 frames / s on VGA)
+;=====================================================================
+
+; --- player
+NB_LIVES        equ     3               ; lives at start
+SHIP_SPD        equ     3               ; ship speed
+SHIP_XMAX       equ     145             ; ship limits (world units)
+SHIP_YMAX       equ     105
+SHIP_Z          equ     300             ; depth of the ship / enemies (front face)
+INVUL_T         equ     90              ; invulnerability after a hit (frames)
+FORM_MAX        equ     2               ; forms 0 probe, 1 fighter, 2 heavy
+
+; --- shots
+MAXB            equ     32              ; bullets on screen
+BUL_SPD         equ     7
+FIRE_T0         equ     7               ; frames between two shots (form 0, 1)
+FIRE_T2         equ     9               ; (form 2 : 3 bullets)
+
+; --- enemies / bonus
+MAXE            equ     16              ; enemies on screen
+WAVE_T          equ     32              ; frames between two enemies
+EN_HP0          equ     1               ; drone : hit points
+EN_HP1          equ     3               ; cruiser
+PTS_EN0         equ     100
+PTS_EN1         equ     200
+PTS_BONUS       equ     500
+BONUS_EVERY     equ     8               ; a bonus pod every 8 enemies killed
+HIT_R           equ     12              ; contact radius ship / enemy / bonus
+BUL_R           equ     9               ; bullet / enemy
+
+; --- scenery
+SCROLL_SPD      equ     1               ; ground : pixels per frame
+TILE_PX         equ     20              ; ground tile (pixels)
+GROUND_Z        equ     400             ; depth of the ground (pillars stand on it)
+PIL_Z0          equ     335             ; top of the pillars
+PIL_EVERY       equ     7               ; a pillar every 7 tile rows
+
+; --- camera / screen (do not change without the code)
+CX              equ     160
+CY              equ     120
+FOC             equ     320             ; same projection as R3D.A56
+SCR_W           equ     320
+SCR_H           equ     240
+LINEB           equ     640             ; True Color : 2 bytes / pixel
+SCRSZ           equ     SCR_H*LINEB
+VMODE_VGA       equ     $0114           ; 320x240 16 bits VGA (line doubling)
+VMODE_RGB       equ     $0024           ; 320x200 16 bits RGB/TV (bottom cut)
+MSG_DUR         equ     120
+SEAM            equ     $1903           ; ground : seams between tiles
+WATER           equ     $11D4           ; ground : river
+
+; --- bottom bar (H key), like RICK3D
+BAND_H          equ     15              ; height (2 lines of 6x6)
+TXT_Y           equ     SCR_H-BAND_H    ; top of the bar
+COLS            equ     53              ; characters per line (53 x 6 = 318 pixels)
+LINEW           equ     54              ; (bytes of a line of text)
