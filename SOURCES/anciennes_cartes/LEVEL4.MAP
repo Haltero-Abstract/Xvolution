@@ -1,0 +1,248 @@
+; SHOTEMUP level map - made by PCB2MAP.PY from a real Atari board
+; source : cam
+; scale 4.50 mm per tile, board turned 90 degrees, columns 16..55 of 56 kept
+; components omitted : A=4 D=5 H=1 K=58 N=31 O=7 R=49 U=4 V=1 X=3 Z=3
+; see CREDITS.TXT for the licences of the source boards
+SEU 1
+THEME falcon
+SIZE 40 98
+oooo#####o#####oo..oooo.oo.#o#####oo####
+#o#o#o####oo###o...ooo..o.o#############
+.ooOo..........oo.ooo...o...ooooo#oo####
+o..oo.....o..............oo..oo....L7...
+o..o.oo.o.oo...oo.oo.oora-7.........|...
+..oo..oo-7....o.rToo.oo|r7|.......oo|.O.
+.rJo..oo-+Too.o.iLo.oii||i|.o..o..or3...
+o|o..oooTW+-a7ooio..ivvii||.|..o...|i...
+||..o.oo+T+T7|..ira7ivii||ioJ..oo.rJ|...
+i|ooo.oo|iiL3i..|Eoivv|||EJ..o7i..|rJ...
+i|LT7orJ|oi.||.r+3.|vv|o||..rTWJo.iL7.o.
+i|oE+TW-WT+oi|.|i|o|E3|.L3..|E-o.o+oEo..
+o|oivir--++T+3.|i|E+W3|..o..||....|rJo..
+.|oE+3ioTJ|E3i.E3iv|o3|o....i|....LJ....
+oEa+3EJo3.ivvi.EJ|E3oiit....||......o...
+oioo|ioo3.ivv|.|r3iE3|i.....||....o.....
+.|.o||..|.|vv|.||iE3||ETo..oiio...L7.o..
+.io|v|..ET3|v|.||vvvv|E+-7oooE3..o.|....
+.|oE3|or3L3|v|.||vvviE3Ea+aJ.iET7o.|..o.
+ooivivii|.|vvi.|iE3|viE+o|r7.|E3|oo|....
+ioivviE3|r3|v|oiv|viviE+7|E3oiE3L7||....
+E3iE+3EJE3|vvi.|viioiviE3iviiE3|.iEJt...
+L3iE+3|r3|vvvi.|iE3.||E+3|v|vv|E7ior7...
+oi|E+3ivvvvvvi.i|E3o|E3|vvv|vvvviioL+o..
+oE3oi||E3|vv|Eo|viooivivvvv|E3|viiooWTo.
+oL+a3i|oivv|E+o|vioo|v|vvvv|vv|EJiE7rJ..
+ioE7|||r3|v|E+7iv|ooE+J|vvvv|v|EoiiEJ...
+|oiiviv|vvv|EWW+3E3E+3r+3|E3oiE3oL+Jo.O.
+|ivvviv|E3|iE-a3E3iviL+3|viLa++3.oi.....
+|vvvvvv||E3|i.o|viviE7|vv|ETa3E+7r3.....
+ivvvv|E3|vvi|..EW+3E3|v|E3|oo3E++WJ.....
+E3E3|E3i|E3||..o.|vvv|vvvi|.oo|L3.......
+E3E+3|E3E3iv|...oivvv|v||o|.|.LTW--7....
+iv|E3E3|vvvv|..o|vvvv|v||.i.|.oW-aTJ..O.
+iE+3E3|E3|E3|...ivvvvivv|r3.|oo...|.....
+E3EWJivvvvvv|...|vvvv|E3|||oi...o.|.o7O.
+ivirT3|v|E3||o..||E3E3iv|E3||o..o.|..|..
+|viE++3iiE3|vi..|vvi|v|iE3i||.o...|..|..
+iiE+WW+3E3ivv|..|viE++J||vv||....oEo.o..
+iviET-3||vvvvi..|E3|i|r3||E+Joo..oo.....
+|iE3ET3iivvvvi..|vvviEJiiE3Eao..........
+E3E+++3i|vvvv|..|iE3|E7E3E+J.o..........
+iivviviE+3|E3E7.i|E3E3oooLJ..o..........
+E+3|vv|vviE3|iL7|vvv|E7roo..o...........
+E3E3E3|vv|v|v|o||vvv|oii...oo...........
+io|vvvivv|v|E+3||iv|E7iio...oo..........
+|o|vvv|vv|v|viL+3oivv|vi..............O.
+o.|v|E3|v|v|iE-3i.||EW3i................
+..|vvvvvv|v||Lo|i.iiLT+3.............O..
+..|vvvvvv|E3EToiio|EaW3|................
+ooivvvvvvivviET3ETW3rT3|................
+iivvvvvvv|vv|E3||Ea+++3|................
+|vvvvvvvv|vv|E3oi|o|E+3|................
+|vvvvvvvvivvvv|oi|i|E3||................
+|vvvv|E3||vvvv||v|E+3|v|.............O..
+|vvvvvi|E3iiE3oivvvvviE3......o.........
+|vvvv|E3|vv||E-J|vvvvvv|o....r3.........
+|vvvvvv||E3|v|..|v|E3|i|.o-a-3|..oo.....
+|vvvvvv|viv|v|..||E3|ioE7...oi|..oo.....
+|vvv|E3E3iviv|..E3|E+JrJL7.oi|EaT7o..o..
+|viE3iE3|vvvv|.o|v|LJrWaoi.||ioo|L7..|o.
+E+3|iEW3|vvvv|.|vvio7ir-o|.io|oo|.|..o|.
+EW3|EWT3|vvvvir3|v|.EW3.oi.|.i..L7|o.r3.
+|r+3|r3|vvvvvvi|vv|.|oi..|o|.i...o|.rJ|.
+|E+3|E3|E3iE3||E+3i.||o..L7o.|...rJ.|rJ.
+|vvvvvv|E3|vvvv|E3|o||.o7oL7oi...oooEJO.
+|vvvvvvv|vvvvivvvv|L3io.i..orJo..o..o...
+|vvvvv|E3|vv|o|v|E3.|v|oE7..|oooo|o7..O.
+|v|vvvvvvvvv|.|vviEa3|L7|E7oE+T3E3r3..oo
+|v|vvvvvvvvv|.|viE3r3|.iE3||E3E3|E3|r-o.
+|v|vv|vvvvvv|.E3iE++3|.|EJi|vviviiE3|...
+|v|iv|vvvvvv|.||o|viv|o||r3|v|oiE+3|Eo..
+||||v|vv|E+3|.||.iiE3|ivv|E+Ji.iiE3||...
+||v|v|viE3|v|.|E7E3oiiE3|E+J.|.o|ivv|...
+||v|E3||E3|vi.|L+3i.|v|L3EJo.i.o|L+W3...
+||v|E3|iE3|v|.LTW3|.||ET+J...o..o.LT3...
+||v||E+3||vv|..La3|r3|EW3.o..ooo##.L+7..
+||v||o|vv|vv|..ra3iivv|o3oor7rJ###..LJ..
+oo|||.iE3E3iE--W-3iiviLT3ET+J|########O.
+..||i.|||E3|E---T+3iiET3iiLW-Jo###o####.
+..i||.|||oiv|...iE+3iviEJ|...#o7##o##oo.
+..|E3.|L3oE+3ooo|vvvi|E3.ir7.##oo######.
+..ivio|.oLJEW7ooivvv|vvioEW+7########oo.
+..|io.i...r3oL7||L+3E3EJ|Eooi#######....
+..|otoo.to++TT+3ET+3|v|.|i##E7#o#####...
+..|.o....oJ|E++++++3|v|.||rT3|#######ro.
+..|oaTaTT7oiE+3ooL+3iE+o|EW++3#######o..
+..|r-+h++++3E+W7.o+3EW+a3EoLJo########..
+..|LT+hW+WW3E+TW--+3|o|.|E7#roo#o####oo.
+..|r++h-+aT+++3oor+3|oE-W3L7E7.......O..
+..|oL+ahWhW+++WWWW+3ETJooir3|i....o.....
+..LotL-aTaaWJL-7..E3L+7LW+W3i|...rJ.....
+..ooo...oo-7o..|.r+3.L3..E-3||..oJ..r7..
+..oL--7...o+7..LT+W+ooi.oo.i|o..o.OrJ|..
+......o....L+---+3oLa7ETJoo||...r--J.|..
+.o..........L---WJ.ooLWW-+7o|...Lo..oJt.
+.|O##############o####o#oLJoJ###########
+.LJ##################################O##
+C V 0 0
+C V 29 0
+C V 34 0
+C V 20 3
+C N 4 5
+C D 30 5
+C H 35 5
+C A 8 6
+C O 10 7
+C R 36 7
+C N 18 8
+C Z 28 8
+C O 2 9
+C D 23 9
+C N 33 9
+C Z 37 9
+C O 30 10
+C H 0 11
+C A 8 11
+C N 26 11
+C O 35 11
+C O 10 12
+C Q 17 12
+C O 2 13
+C Z 33 13
+C O 35 13
+C X 29 14
+C X 13 15
+C O 23 16
+C D 35 16
+C Q 27 17
+C N 15 18
+C Z 33 18
+C Z 37 18
+C A 7 19
+C O 23 19
+C F 0 22
+C D 24 22
+C D 27 22
+C V 37 22
+C A 6 24
+C Z 22 24
+C H 7 25
+C A 12 25
+C Q 15 25
+C V 37 28
+C N 21 29
+C O 27 29
+C O 30 29
+C O 32 29
+C A 7 30
+C A 11 30
+C O 32 31
+C Z 16 32
+C N 30 34
+C Q 0 37
+C N 26 37
+C N 7 39
+C V 37 39
+C H 24 42
+C N 6 43
+C Z 5 45
+C X 11 47
+C Q 16 48
+C V 37 49
+C H 0 51
+C N 10 52
+C N 34 55
+C N 21 56
+C U 26 56
+C Q 20 58
+C V 37 58
+C D 27 60
+C Q 2 61
+C Z 19 62
+C H 21 62
+C U 31 62
+C N 34 62
+C N 33 64
+C H 18 65
+C N 33 66
+C D 26 67
+C A 29 67
+C Q 31 67
+C A 37 67
+C H 7 68
+C O 18 68
+C N 20 68
+C N 22 70
+C A 35 70
+C N 15 71
+C U 29 72
+C U 31 72
+C Q 18 74
+C Z 31 74
+C A 37 74
+C Z 28 75
+C O 26 77
+C U 28 78
+C D 32 78
+C D 4 79
+C D 8 79
+C V 38 79
+C Z 26 80
+C N 34 80
+C O 12 81
+C Z 30 81
+C X 17 82
+C O 26 82
+C N 34 82
+C Z 23 83
+C H 14 84
+C Z 20 84
+C Z 26 84
+C Z 31 84
+C V 38 85
+C H 10 86
+C P 14 86
+C H 18 86
+C O 26 86
+C N 34 86
+C M 3 87
+C M 6 87
+C M 9 87
+C Z 24 87
+C Z 31 87
+C N 27 88
+C N 34 88
+C H 14 90
+C A 29 90
+C N 33 90
+C Q 23 91
+C P 36 91
+C O 3 92
+C Z 21 92
+C N 31 92
+C N 16 93
+C H 6 94
+C O 16 94
+C N 29 95
+C N 34 95
+END

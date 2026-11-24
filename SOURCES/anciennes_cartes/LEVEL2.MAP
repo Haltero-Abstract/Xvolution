@@ -1,0 +1,251 @@
+; SHOTEMUP level map - made by PCB2MAP.PY from a real Atari board
+; source : motherboard.kicad_pcb
+; scale 4.50 mm per tile, board turned 90 degrees, columns 5..44 of 46 kept
+; components omitted : A=2 K=115 R=60 Z=1
+; see CREDITS.TXT for the licences of the source boards
+SEU 1
+THEME st
+SIZE 40 99
+.O.................O....................
+.oo.ooo.oo.ooo.oo.r7o.oo.o..............
+.......r-7.......rO|.........ooo.oo.o...
+...r---WT+---T-T-+7L7.......o........o..
+rTT+aTTTWWhhh+h+TW+T+TTT-T--T--T---TTT7o
+L+WWT+WWTahhhWh++-+W+W++h+-h+TTWoo-W+3|o
+o+--++--+hah--h++h+-+T++h+Ta++J.....E+J.
+r+hh+WT-+hT-Tah++hWT+W+Wh+W-W+T7rTT-+3.O
+EWh-+a+h+h+h+hh++h-++-+--WTTT++WW+W-JE7.
+LT--+h+h+h+h+hh++ha++-+-oo|L+JL-TW---J|o
+o+hh+h+h+-+h+hh++hT+WTWh-J|rJr--JO.ra7L7
+rWhh+h+h+TWh+-h++-+WTWT-o.|E-+-7...Ea3o3
+E--h+-W-+W--WT-WWTW-+-W-o.E+h+7|...E7L-3
+o.r-3..oo..o.o.o.o..ET--or+Wh+WWTTTWW-o|
+o-Jo+--W--TW-T-WT---WWT-T++a-W-a+++Ta-O3
+r---+-7.o-Wa-Jr7LT-haT+hWW+-T-TaWWW+aoo3
+oo--WaWTT--hh-W+TWhhhW+hT-Wh+-WTTooLTToi
+...o---+WT-hhh-3LT----W-Jr-hWT-+JrWa+J.|
+o......LaWh-h-hWa+T-TaTT-Jr--+-+a+ooJ.oJ
+Laa----T--aa-T-T7LW-J.oLT-W--WTWT3..O..o
+o---a-T+a-h-TW-3LTaT-a-TW-7.r-Wa+Jr--7..
+o--hT-W+hT-oL7oJ.L-Wha-+aaW-JrorWoE-oo.o
+r-TaWhTWa+-a-+-TTTa-h--J.....|oWToE-o...
+L-W--aW-TWTooLTWWWh--or7.....Lor+oE-or-o
+o-T----hWTWTWTW---hh-T+J.o.p..oW+oE-oo.o
+o-+TTT-ha+aW-W-h-hhhh+W-oLTTT-aT+oE-o..o
+.rJLJL---+a-hTa-T-hh-W-T--WW+hh++7L--7..
+o+a-T-TTTWhhhW-TWhhhTa-WT-a7Lah+++-orWoo
+oWh-+TWWWT-h-a-W----+hT-WTT+ahhW++--3..o
+oahT++TTaWT-hTTa----WhW--3LWhhh-+Wo.O..o
+o--WWWWW-T+h-WWhT-hha-7.p|.rahhTW-o.|...
+ra--aTT7o++a-aTaW-hhhT+7.L-Wha-J...oE-oo
+|...oW++a++or-WhTT-hhWW+-TTT-TTaT--oE-Oo
+L--7..LWTW+T+h-h++hhha-J.LWWaWWTWTT-+-o.
+.oT3...rWa+WW-aa++hhhT7.....r7.L-W+7E-oo
+o.E+---+TT+--T-7L+hhhW3.....oLororWJE-oo
+LaWWhhTWW+3rTWT+7L----J.....ra-JrW-oL7oo
+o.o---W--WWWWTW++T7oo-a-----Wa--J.oo.L3.
+.....oTTTa-a-W-++++J........oo.ooao.O.|o
+p.oT7r+WW7.o-T-+++J..r----a--a-+---7..|o
+...L++W7.EaaT+TW+WT--Wha--or---JptoWT-W7
+o-o.L+-+TWh-W++-+a+or---a--W----o.r7E-o|
+o.p..LT+W--7.L+-+TW-Jo...#o7.oo.p.E3E-oi
+L---7.oL--aWT-WTW+oo-W----7L-ao.pr3|E-o|
+..o7L---o.raJ#oW-Wa------aJ...oTTW+JE-TJ
+p.pL--h-a-W-7oT--aT-T-T7......o+W-WoE-Oo
+.....oa---ooWa+--TWTW-+WT--o..o3o--oLT3o
+t..o-aaoropo-h+-T+-WT-WTW--7..o3p..p.L3.
+o----7ooo.oo-hWT+Wh-+-aW---J..r3.O....|o
+.....LT--o|oT-7L+---+Ta--T-ot.LJ......|o
+o--Ta7L---W-W-W-3oaT+W-T7E-o..........|o
+o.oW-+aTT--T--o.L-T++ToE+3oT----o.....L7
+o.t..L-WW-aW------WW++-JLWoo.rT7oTaTT7.i
+o-----a--o.oa-o.....E+h--aT-T+WWT+h+W3.|
+p.o--or--a--a-o.....|Lah--WaWJrTW+h+-WT3
+o-----WhT-T-ooo...r-Wa--o..po-WWaWaWTo||
+t....o-aWhWhaao.orJ...o..p.p.oaTT-T-+-3i
+p.o-oo--T-T-----+Joa--W--------WWaW-Woo|
+o--o.o-TWh+hTTT-J......raa-o.ooo.o.o...i
+o----T-W--W-WWWo.......|o.ss.o..o..o...i
+o---TJsssssssossssssss.iooss.oo.oo.op..i
+p.oT3r-o.o-o.L7.....os.iooss.oo.oo.o...|
+o--W+Js...ro..L-7.r-3s.iooss.oo.ooo...oi
+....oosp..Eo....LaJ.|o.i.oss..o..o..p..|
+p.o--Jso..Lo..o..o7o3|.iooss.oo.oo.o..o|
+..t...s|..rT-aJ.r-W7||.iooss.oo.oo.op.o|
+...o-7soo-+WT---Jp.L3|oiooss.oo.oo.o...i
+p.o--+7or-W-+hha-aoo|oo|o.ss.o..o..o...i
+...o7oo|oo-h+hhaooo|osoiooss.oo.oo.op..i
+t...E-oL-Tah+-hTT-aJ.soiooss.oo.oo.o...|
+p.oTWosp.E-hWT-WWha7.soiooss.oo.oo.or--3
+...o..soaW--aW-7o-TW7soiooro..o.oo.rJ..i
+....ooso..poo..E7.o.is.E--3..o-ororJ...|
+p.o-JosE-a-T-a-JE7.o3sr+-T+TT-T-JoJ.ro.|
+o-----o|..pop..o|ET7|rJoo+W3L-+a-oO.|..i
+.....os|....p.rJLWJo|LTa-W7LTaWh-ao.Eo.|
+r----W-3..pp..Eo..o.|sopo.LTW7r-oro.|..i
+o....oso...p..o..oJ.|o-7Ea-WTWW--WaaJo.|
+t.o7o7so.........p.rJs.L3.ooJ.oot.raaW-3
+p.oW-3s|...p..r-7p.ops.r+TW------oEaT7.i
+o--o.L7o..pp.rJ.Lo..po-JLW-T----o.|.LJ.o
+......Lo..po-Jppr-o..o----o|o7pp..oo7...
+p.o-oosp..pp..p.L-or--a---oo.Lo.....o..o
+o--o..sp..p.oo-----3.s........o....oo..o
+.....os...o-J......L7s.r----or3....o7...
+p.o-oos...r-7..rop..osrJ.....||....oJ..o
+o--ooJs...|.L-TW-7..r-J....r-++-----o..o
+t.....s...|...|..L--JoT-TTT+-WJ.........
+..oto7s...|...o..o----JoEWWJ...........o
+o.r-oL7...|......o..rTTW+---------T--o.o
+o-J...Lo..|.....oJr-JL+-WTTT7.....L7.p.o
+......ssss|sso-7r-+TTTWTaWWWW-o....|.o..
+..........|....L3.oLW+-+oppoppp..O.L-W7.
+...oo.oo.oio.oo.io...oo3..............EO
+.oo.ooo.oo|oo.r-W------J..............|.
+....r-----W---J..............o-o....o-J.
+o---J.............O.........O.......O...
+.Oo.ooo.oo.ooo.oo.oOo.ooo.oo.ooo.oo.oo.o
+........................................
+C H 31 4
+C D 1 6
+C D 5 6
+C D 9 6
+C D 14 6
+C D 18 6
+C D 22 7
+C A 0 8
+C N 34 8
+C R 10 13
+C R 1 14
+C R 4 14
+C R 14 14
+C R 18 14
+C P 27 14
+C R 7 15
+C R 11 15
+C A 32 15
+C R 0 16
+C R 3 16
+C R 17 16
+C R 34 16
+C R 29 18
+C R 34 18
+C V 37 20
+C X 15 21
+C Q 2 22
+C N 27 22
+C R 32 22
+C P 11 23
+C P 18 25
+C A 3 26
+C N 24 26
+C D 28 27
+C D 32 28
+C Z 25 29
+C R 34 29
+C N 11 31
+C R 0 33
+C R 29 34
+C R 0 35
+C R 4 35
+C D 29 35
+C D 33 35
+C R 31 36
+C R 0 37
+C R 3 37
+C Q 10 37
+C R 21 38
+C M 1 39
+C R 5 40
+C R 22 40
+C N 22 42
+C M 0 43
+C M 2 44
+C D 7 45
+C D 11 45
+C P 27 45
+C D 17 46
+C D 22 46
+C A 26 47
+C M 1 48
+C R 33 48
+C Z 31 51
+C M 0 52
+C V 37 52
+C M 2 53
+C D 7 53
+C D 11 53
+C R 28 53
+C N 24 54
+C U 32 54
+C Z 28 55
+C R 31 56
+C M 1 57
+C N 4 57
+C M 1 61
+C R 9 61
+C R 17 61
+C R 36 61
+C R 7 63
+C N 17 63
+C H 20 64
+C U 36 64
+C M 0 65
+C U 17 65
+C R 19 65
+C M 2 66
+C R 8 66
+C P 11 66
+C U 18 67
+C R 36 67
+C R 8 68
+C M 1 70
+C R 7 70
+C R 14 70
+C R 17 70
+C R 14 72
+C U 18 72
+C V 37 72
+C N 8 73
+C U 12 73
+C D 24 73
+C D 28 73
+C D 32 73
+C M 0 74
+C R 18 74
+C M 2 75
+C Z 21 75
+C N 12 76
+C U 16 76
+C U 18 76
+C Z 26 76
+C V 36 77
+C X 7 78
+C R 12 78
+C R 17 78
+C R 29 78
+C M 1 79
+C D 24 79
+C O 28 79
+C N 8 80
+C N 17 80
+C D 17 81
+C D 32 81
+C V 35 82
+C M 0 83
+C U 12 83
+C M 2 84
+C R 8 84
+C R 19 84
+C X 8 85
+C U 12 85
+C U 16 85
+C R 18 86
+C Z 23 86
+C N 14 87
+C H 34 88
+C N 0 91
+C Z 4 91
+C H 35 91
+C N 18 93
+C H 17 95
+END

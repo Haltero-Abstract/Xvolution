@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>XVOLUTION - éditeur de carte (circuit imprimé)</title>
+<style>
+  body { margin:0; font:13px/1.35 Verdana, sans-serif; background:#1b1f1b; color:#dde; display:flex; height:100vh; }
+  #side { width:300px; padding:10px; background:#262b26; overflow-y:auto; box-sizing:border-box; }
+  #main { flex:1; overflow:auto; position:relative; }
+  h1 { font-size:15px; margin:0 0 8px; color:#9e9; }
+  h2 { font-size:13px; margin:14px 0 6px; color:#cc9; border-bottom:1px solid #444; }
+  button, input, select { font:12px Verdana; }
+  button { background:#3a443a; color:#eee; border:1px solid #586; padding:3px 8px; cursor:pointer; margin:2px 0; }
+  button:hover { background:#4a5a4a; }
+  .pal { display:flex; flex-wrap:wrap; gap:3px; }
+  .pal canvas, .pal div.c { border:2px solid transparent; cursor:pointer; }
+  .pal .sel { border-color:#ff0; }
+  .pal div.c { width:62px; height:42px; background:#333; color:#ddd; font-size:11px; text-align:center; line-height:15px; padding-top:2px; box-sizing:border-box; }
+  #info { margin-top:8px; color:#aaa; font-size:12px; white-space:pre-line; }
+  #cv { display:block; image-rendering:pixelated; cursor:crosshair; }
+  label { display:block; margin:3px 0; }
+  .small { font-size:11px; color:#999; }
+</style>
+</head>
+<body>
+<div id="side">
+  <h1>XVOLUTION — éditeur de carte</h1>
+  <button id="bOpen">Ouvrir .MAP…</button>
+  <button id="bSave">Enregistrer</button> <select id="lvl"><option>LEVEL1.MAP</option><option>LEVEL2.MAP</option><option>LEVEL3.MAP</option><option>LEVEL4.MAP</option></select>
+  <label>Thème : <select id="theme"><option value="a8">a8 (130 XE)</option><option value="st">st (520 ST)</option><option value="ste">ste (STE)</option><option value="falcon">falcon (Falcon 030)</option><option value="">classique (sans ligne THEME)</option></select></label>
+  <label>Colonnes : <input id="cols" type="number" min="16" max="40" value="16" style="width:50px"> <button id="bCols">Appliquer</button></label>
+  <div class="small">16 à 40 colonnes (au-delà de 16 : défilement horizontal dans le jeu, cadre jaune = écran 320 x 240). On ajoute / retire des colonnes à droite.</div>
+  <input type="file" id="file" accept=".map,.MAP,.txt" style="display:none">
+  <label>Lignes : <input id="rows" type="number" min="12" max="1500" value="300" style="width:60px">
+    <button id="bRows">Appliquer</button></label>
+  <div class="small">On ajoute / retire des lignes en haut (fin du niveau) : le départ reste en bas.</div>
+  <label>Zoom : <select id="zoom"><option>1</option><option selected>2</option><option>3</option></select></label>
+  <label><input type="checkbox" id="persp" checked> Composants en 3D (perspective du jeu)</label>
+  <label><input type="checkbox" id="grid"> Grille</label>
+  <h2>Tuiles (clic gauche = peindre)</h2>
+  <div class="pal" id="tpal"></div>
+  <h2>Composants (clic = poser)</h2>
+  <div class="pal" id="cpal"></div>
+  <div class="small">Clic droit : enlève le composant sous la souris (sinon remet la tuile « carte »).<br>
+  Maj + glisser : rectangle de la tuile choisie.<br>
+  Pistes : choisir « auto » puis glisser : les coudes se font tout seuls.<br>
+  Double-clic sur un composant : nom écrit dessus (68030, TOS_ROM… ; _ = espace) ; * devant le nom = BOSS (cadre rouge).</div>
+  <div id="pos" class="small"></div>
+  <div id="info"></div>
+</div>
+<div id="main"><canvas id="cv"></canvas></div>
+<script>
+/*@@TILES@@*/
+var T = 20, GZ = 400, FOC = 320;
+var COMP = { P:{n:'processeur',w:4,h:4}, M:{n:'mémoire',w:2,h:4}, R:{n:'résistance',w:2,h:1},
+             K:{n:'condensat.',w:1,h:1}, X:{n:'quartz',w:2,h:1}, H:{n:'connecteur',w:4,h:1},
+             Q:{n:'QFP (VIDEL)',w:4,h:4}, F:{n:'68030',w:4,h:4}, D:{n:'DIP',w:2,h:5},
+             O:{n:'SOIC',w:2,h:2}, A:{n:'réseau R rouge',w:1,h:4}, U:{n:'SIP bleu',w:1,h:1},
+             Z:{n:'chimique',w:2,h:2}, G:{n:'carte RAM',w:6,h:10}, N:{n:'ferrite',w:3,h:1},
+             V:{n:'prise D-sub',w:2,h:5} };
+// models : x0 y0 x1 y1 z0 colour [front, side]  (same as COMPOS.S)
+var C = { chip:['#202020','#101010'], mark:['#9c9c9c','#646464'], tin:['#c4c4c4','#848484'],
+  beige:['#e6d4a4','#a49470'], brown:['#8c4410','#502000'], black:['#101010','#080808'],
+  red:['#e81420','#980010'], gold:['#fccc00','#b48000'], cap:['#2a44cc','#182080'],
+  capt:['#dcdcdc','#949494'], xtal:['#ececec','#9c9c9c'], qfp:['#303030','#181818'],
+  alu:['#bcbcbc','#787878'], fan:['#181c18','#080808'], rarr:['#d81418','#900000'],
+  blue:['#2864f8','#1030b8'], ecap:['#282828','#101010'], ramb:['#58a050','#306430'] };
+var MDL = {
+ P:[[10,4,70,10,394,'tin'],[10,70,70,76,394,'tin'],[4,10,10,70,394,'tin'],[70,10,76,70,394,'tin'],
+    [10,10,70,70,380,'chip']],
+ M:[[3,8,8,72,395,'tin'],[32,8,37,72,395,'tin'],[8,4,32,76,384,'chip']],
+ R:[[2,8,12,12,396,'tin'],[28,8,38,12,396,'tin'],[10,5,30,15,390,'beige'],[13,5,15,15,389,'brown'],
+    [17,5,19,15,389,'black'],[21,5,23,15,389,'red'],[26,5,28,15,389,'gold']],
+ K:[[3,3,17,17,352,'cap'],[5,5,15,15,351,'capt']],
+ X:[[4,4,36,16,392,'tin'],[6,6,34,14,386,'xtal']],
+ H:[[2,4,78,16,390,'chip'],[10,8,14,12,372,'gold'],[30,8,34,12,372,'gold'],[46,8,50,12,372,'gold'],[66,8,70,12,372,'gold']],
+ Q:[[2,2,78,78,397,'tin'],[8,8,72,72,388,'qfp']],
+ F:[[2,2,78,78,397,'tin'],[8,8,72,72,388,'chip']],
+ D:[[3,4,8,96,396,'tin'],[32,4,37,96,396,'tin'],[8,2,32,98,386,'chip']],
+ O:[[3,8,37,32,397,'tin'],[8,6,32,34,390,'chip']],
+ A:[[6,2,14,78,384,'rarr']], U:[[5,3,15,17,388,'blue']],
+ Z:[[3,3,37,37,330,'ecap'],[7,7,33,33,329,'capt']],
+ G:[[0,0,120,200,372,'ramb'],[40,14,84,40,366,'chip'],[40,58,84,84,366,'chip'],[40,102,84,128,366,'chip'],[40,146,84,172,366,'chip']],
+ N:[[4,4,56,16,384,'black']], V:[[2,2,38,98,376,'tin'],[8,8,32,92,375,'chip']]
+};
+// --- tile pictures
+var tileImg = [];
+function loadTiles(th){
+  tileImg = [];
+  var b = atob((typeof PCB_THEMES != 'undefined' && PCB_THEMES[th]) || PCB_TILES);
+  for (var t = 0; t < PCB_CHARS.length; t++) {
+    var c = document.createElement('canvas'); c.width = c.height = T;
+    var x = c.getContext('2d'), id = x.createImageData(T, T);
+    for (var i = 0; i < T*T; i++) {
+      var o = t*T*T*2 + i*2, v = (b.charCodeAt(o) << 8) | b.charCodeAt(o+1);
+      id.data[i*4] = ((v >> 11) & 31) << 3; id.data[i*4+1] = ((v >> 5) & 63) << 2;
+      id.data[i*4+2] = (v & 31) << 3; id.data[i*4+3] = 255;
+    }
+    x.putImageData(id, 0, 0); tileImg.push(c);
+  }
+}
+loadTiles('');
+function setTheme(th){ theme = th; document.getElementById('theme').value = th; loadTiles(th);
+  var tp = document.getElementById('tpal'); if (tp.children.length) { tp.innerHTML = ''; buildTilePal(); } }
+function dots(){ return '.'.repeat(W).split(''); }
+// --- map
+var rows = 300, W = 16, theme = '', map = [], comps = [], cur = {kind:'t', v:'-'};
+function newMap(n){ rows = n; map = []; for (var r = 0; r < n; r++) map.push(dots()); comps = []; }
+newMap(300);
+function tileIdx(ch){ var i = PCB_CHARS.indexOf(ch); return i < 0 ? 0 : i; }
+function parse(txt){
+  var L = txt.split(/\r?\n/), i = 0, n = 0, w = 16, th = '', m = [], cs = [];
+  for (; i < L.length; i++) {
+    var l = L[i]; if (!l || l[0] == ';') continue;
+    if (l.indexOf('THEME') == 0) th = (l.split(/\s+/)[1] || '').toLowerCase();
+    if (l.indexOf('SIZE') == 0) { var q = l.split(/\s+/); w = Math.max(16, Math.min(40, parseInt(q[1]) || 16)); n = parseInt(q[2]); i++; break; }
+  }
+  if (!n) { alert('Pas de ligne SIZE : ce n\'est pas une carte XVOLUTION.'); return; }
+  W = w; document.getElementById('cols').value = W; setTheme(th);
+  for (; i < L.length && m.length < n; i++) {
+    var l = L[i]; if (l === undefined || (l[0] == ';')) continue;
+    var row = (l + '.'.repeat(W)).substr(0, W).split('');
+    m.push(row);
+  }
+  while (m.length < n) m.push(dots());
+  for (; i < L.length; i++) {
+    var p = L[i].trim().split(/\s+/);
+    if (p[0] == 'C' && COMP[p[1]]) cs.push({t:p[1], c:+p[2], r:+p[3], n:p[4] || ''});
+    if (p[0] == 'END') break;
+  }
+  rows = n; map = m; comps = cs; document.getElementById('rows').value = n; draw(); scrollStart();
+}
+function serialize(){
+  var s = '; XVOLUTION level - printed circuit board (OUTILS\\EDITEUR.HTML)\r\n'
+        + '; row 0 = end of the level (top), last row = start (bottom)\r\nSEU 1\r\n'
+        + (theme ? 'THEME ' + theme + '\r\n' : '') + 'SIZE ' + W + ' ' + rows + '\r\n';
+  for (var r = 0; r < rows; r++) s += map[r].join('') + '\r\n';
+  comps.slice().sort(function(a,b){ return a.r - b.r || a.c - b.c; }).forEach(function(c){
+    s += 'C ' + c.t + ' ' + c.c + ' ' + c.r + (c.n ? ' ' + c.n : '') + '\r\n'; });
+  return s + 'END\r\n';
+}
+// --- drawing
+var cv = document.getElementById('cv'), cx = cv.getContext('2d'), Z = 2, main = document.getElementById('main');
+function draw(){
+  Z = +document.getElementById('zoom').value;
+  cv.width = W*T*Z; cv.height = rows*T*Z;
+  cx.imageSmoothingEnabled = false;
+  for (var r = 0; r < rows; r++) for (var c = 0; c < W; c++)
+    cx.drawImage(tileImg[tileIdx(map[r][c])], c*T*Z, r*T*Z, T*Z, T*Z);
+  if (document.getElementById('grid').checked) {
+    cx.strokeStyle = 'rgba(255,255,255,0.12)';
+    for (var c = 0; c <= W; c++) { cx.beginPath(); cx.moveTo(c*T*Z, 0); cx.lineTo(c*T*Z, cv.height); cx.stroke(); }
+    for (var r = 0; r <= rows; r++) { cx.beginPath(); cx.moveTo(0, r*T*Z); cx.lineTo(cv.width, r*T*Z); cx.stroke(); }
+  }
+  cx.fillStyle = '#ff0'; cx.font = (10*Z) + 'px Verdana';
+  for (var r = 0; r < rows; r += 10) cx.fillText(r, 2, r*T*Z + 10*Z);
+  cx.fillText('FIN', W*T*Z - 30*Z, 12*Z);
+  cx.fillText('DÉPART', W*T*Z - 52*Z, rows*T*Z - 4*Z);
+  drawComps();
+  if (W > 16) { cx.strokeStyle = 'rgba(255,255,0,0.6)'; cx.lineWidth = 2; cx.setLineDash([6,6]);
+    var sx = Math.min(main.scrollLeft, cv.width - 320*Z), sy = main.scrollTop + main.clientHeight/2 - 120*Z;
+    cx.strokeRect(Math.max(0, sx), sy, 320*Z, 240*Z); cx.setLineDash([]); cx.lineWidth = 1; }
+  info();
+}
+function drawComps(){
+  var persp = document.getElementById('persp').checked;
+  // view centre (like the game : centre of the 320 x 240 screen)
+  var vy = (main.scrollTop + main.clientHeight/2) / Z, vx = W > 16 ? Math.max(0, Math.min(main.scrollLeft/Z, W*T - 320)) + 160 : 160;
+  comps.forEach(function(k){
+    var x0 = k.c*T, y0 = k.r*T;
+    MDL[k.t].forEach(function(b){
+      var col = C[b[5]], z = b[4];
+      var X0 = x0+b[0], Y0 = y0+b[1], X1 = x0+b[2], Y1 = y0+b[3];
+      var f = persp ? GZ / z : 1;
+      var P = function(x, y){ return [(vx + (x - vx)*f)*Z, (vy + (y - vy)*f)*Z]; };
+      var t0 = P(X0,Y0), t1 = P(X1,Y1);
+      if (persp) {                          // side faces : base -> top
+        cx.fillStyle = col[1];
+        var quad = function(a, b2, c, d){ cx.beginPath(); cx.moveTo(a[0],a[1]); cx.lineTo(b2[0],b2[1]);
+          cx.lineTo(c[0],c[1]); cx.lineTo(d[0],d[1]); cx.closePath(); cx.fill(); };
+        var B = function(x, y){ return [x*Z, y*Z]; };
+        quad(B(X0,Y0), B(X1,Y0), P(X1,Y0), P(X0,Y0));
+        quad(B(X0,Y1), B(X1,Y1), P(X1,Y1), P(X0,Y1));
+        quad(B(X0,Y0), B(X0,Y1), P(X0,Y1), P(X0,Y0));
+        quad(B(X1,Y0), B(X1,Y1), P(X1,Y1), P(X1,Y0));
+      }
+      cx.fillStyle = col[0];
+      cx.fillRect(t0[0], t0[1], t1[0]-t0[0], t1[1]-t0[1]);
+    });
+    if (k.n) {                              // name printed on the top (like the game)
+      var s = COMP[k.t], z = 386, f = persp ? GZ / z : 1;
+      var mx = x0 + s.w*T/2, my = y0 + s.h*T/2;
+      var px = (vx + (mx - vx)*f)*Z, py = (vy + (my - vy)*f)*Z, txt = k.n.replace(/^\*/, '').replace(/_/g, ' ');
+      cx.save(); cx.translate(px, py); if (s.h > s.w) cx.rotate(-Math.PI/2);
+      cx.font = 'bold ' + (6*Z) + 'px monospace'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+      var tw = cx.measureText(txt).width;
+      cx.fillStyle = '#183018'; cx.fillRect(-tw/2 - Z, -4*Z, tw + 2*Z, 8*Z);
+      cx.fillStyle = '#c4c4c4'; cx.fillText(txt, 0, 0); cx.restore();
+    }
+    if (k.n && k.n[0] == '*') {             // boss : red frame + BOSS
+      var s2 = COMP[k.t]; cx.strokeStyle = '#ff2020'; cx.lineWidth = 2*Z;
+      cx.strokeRect(x0*Z, y0*Z, s2.w*T*Z, s2.h*T*Z); cx.lineWidth = 1;
+      cx.fillStyle = '#ff2020'; cx.font = 'bold ' + (7*Z) + 'px monospace'; cx.textAlign = 'left';
+      cx.textBaseline = 'bottom'; cx.fillText('BOSS', x0*Z, y0*Z - Z);
+    }
+  });
+}
+function info(){
+  var cnt = {}; comps.forEach(function(c){ cnt[c.t] = (cnt[c.t]||0) + 1; });
+  document.getElementById('info').textContent =
+    W + ' x ' + rows + ' tuiles, thème ' + (theme || 'classique') + ' (~' + Math.round(rows*T/2/30) + ' s à 30 images/s)\n' +
+    comps.length + ' composants : ' + Object.keys(cnt).map(function(k){ return COMP[k].n + ' ' + cnt[k]; }).join(', ');
+}
+// --- palettes
+function buildTilePal(){
+  var tp = document.getElementById('tpal');
+  var auto = document.createElement('div'); auto.className = 'c'; auto.innerHTML = 'piste<br>auto';
+  auto.onclick = function(){ cur = {kind:'auto'}; selPal(auto); }; tp.appendChild(auto);
+  PCB_CHARS.split('').forEach(function(ch, i){
+    var c = document.createElement('canvas'); c.width = c.height = 34; c.title = ch + ' : ' + PCB_NAMES[i];
+    var x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(tileImg[i], 0, 0, 34, 34);
+    c.onclick = function(){ cur = {kind:'t', v:ch}; selPal(c); };
+    tp.appendChild(c); if (ch == '-' && cur.kind == 't') selPal(c);
+  });
+}
+function buildPal(){
+  buildTilePal();
+  var cp = document.getElementById('cpal');
+  Object.keys(COMP).forEach(function(k){
+    var d = document.createElement('div'); d.className = 'c';
+    d.innerHTML = k + '<br>' + COMP[k].n; d.title = COMP[k].w + ' x ' + COMP[k].h + ' tuiles';
+    d.onclick = function(){ cur = {kind:'c', v:k}; selPal(d); }; cp.appendChild(d);
+  });
+}
+function selPal(el){ document.querySelectorAll('.pal .sel').forEach(function(e){ e.classList.remove('sel'); }); el.classList.add('sel'); }
+// --- mouse
+var down = 0, start = null, last = null, autoPath = [];
+function cell(e){ var r = cv.getBoundingClientRect();
+  return { c: Math.floor((e.clientX - r.left) / (T*Z)), r: Math.floor((e.clientY - r.top) / (T*Z)) }; }
+function compAt(p){ for (var i = comps.length - 1; i >= 0; i--) { var k = comps[i], s = COMP[k.t];
+  if (p.c >= k.c && p.c < k.c + s.w && p.r >= k.r && p.r < k.r + s.h) return i; } return -1; }
+function setT(p, ch){ if (p.r >= 0 && p.r < rows && p.c >= 0 && p.c < W) map[p.r][p.c] = ch; }
+var DIR = { '-':'lr','|':'ud','+':'lrud','r':'rd','7':'ld','L':'ur','J':'ul','T':'lrd','W':'lru','E':'udr','3':'udl','a':'lr','i':'ud' };
+function dirsOf(ch){ return DIR[ch] || ''; }
+function charOf(d){ var k = ['l','r','u','d'].filter(function(x){ return d.indexOf(x) >= 0; }).join('');
+  if (k.length < 2) k = (k == 'l' || k == 'r') ? 'lr' : (k ? 'ud' : '');
+  for (var ch in DIR) { var v = DIR[ch]; if (ch == 'a' || ch == 'i') continue;
+    if (v.length == k.length && v.split('').every(function(x){ return k.indexOf(x) >= 0; })) return ch; }
+  return '+'; }
+function link(a, b){                        // trace between 2 neighbour cells
+  var d = b.c > a.c ? ['r','l'] : b.c < a.c ? ['l','r'] : b.r > a.r ? ['d','u'] : ['u','d'];
+  [[a,d[0]],[b,d[1]]].forEach(function(q){ var p = q[0]; if (p.r < 0 || p.r >= rows) return;
+    var ds = dirsOf(map[p.r][p.c]); if (ds.indexOf(q[1]) < 0) ds += q[1]; map[p.r][p.c] = charOf(ds); });
+}
+cv.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+cv.addEventListener('dblclick', function(e){        // name printed on a component
+  var i = compAt(cell(e)); if (i < 0) return;
+  var n = prompt('Nom écrit sur le composant (11 caractères max, vide = aucun).\nMettre * devant = BOSS (le défilement s\'arrête, il faut le détruire) :', comps[i].n || '');
+  if (n === null) return;
+  comps[i].n = n.trim().replace(/\s+/g, '_').substr(0, 11); draw();
+});
+cv.addEventListener('mousedown', function(e){
+  var p = cell(e); down = e.button == 2 ? 2 : 1; start = p; last = p;
+  if (down == 2) { var i = compAt(p); if (i >= 0) comps.splice(i, 1); else setT(p, '.'); draw(); return; }
+  if (cur.kind == 'c') {
+    var s = COMP[cur.v];
+    if (p.c + s.w > W) p.c = W - s.w;
+    comps.push({t:cur.v, c:p.c, r:p.r, n:''}); down = 0; draw(); return;
+  }
+  if (cur.kind == 't' && !e.shiftKey) { setT(p, cur.v); draw(); }
+});
+cv.addEventListener('mousemove', function(e){
+  var p = cell(e);
+  document.getElementById('pos').textContent = 'souris : ligne ' + p.r + ', colonne ' + p.c;
+  if (!down || (p.r == last.r && p.c == last.c)) return;
+  if (down == 2) { var i = compAt(p); if (i >= 0) comps.splice(i, 1); else setT(p, '.'); }
+  else if (cur.kind == 't' && !e.shiftKey) setT(p, cur.v);
+  else if (cur.kind == 'auto') {             // one step at a time (no diagonal)
+    while (last.c != p.c || last.r != p.r) {
+      var n = { c: last.c + Math.sign(p.c - last.c), r: last.r };
+      if (n.c == last.c) n.r = last.r + Math.sign(p.r - last.r);
+      link(last, n); last = n;
+    }
+  }
+  last = p; draw();
+});
+window.addEventListener('mouseup', function(e){
+  if (down == 1 && cur.kind == 't' && e.shiftKey && start) {
+    var p = cell(e);
+    for (var r = Math.min(start.r, p.r); r <= Math.max(start.r, p.r); r++)
+      for (var c = Math.min(start.c, p.c); c <= Math.max(start.c, p.c); c++) setT({r:r, c:c}, cur.v);
+    draw();
+  }
+  down = 0;
+});
+main.addEventListener('scroll', function(){ if (document.getElementById('persp').checked || W > 16) { clearTimeout(main.t); main.t = setTimeout(draw, 60); } });
+// --- buttons
+document.getElementById('bOpen').onclick = function(){ document.getElementById('file').click(); };
+document.getElementById('file').onchange = function(e){
+  var f = e.target.files[0]; if (!f) return;
+  var m = /LEVEL([1-4])/i.exec(f.name); if (m) document.getElementById('lvl').value = 'LEVEL' + m[1] + '.MAP';
+  var rd = new FileReader(); rd.onload = function(){ parse(rd.result); }; rd.readAsText(f, 'latin1');
+};
+document.getElementById('bSave').onclick = function(){
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([serialize()], {type:'text/plain'}));
+  a.download = document.getElementById('lvl').value; a.click();
+};
+document.getElementById('bRows').onclick = function(){
+  var n = Math.max(12, Math.min(1500, +document.getElementById('rows').value)), d = n - rows;
+  if (d > 0) { for (var i = 0; i < d; i++) map.unshift(dots()); comps.forEach(function(c){ c.r += d; }); }
+  if (d < 0) { map.splice(0, -d); comps = comps.filter(function(c){ c.r += d; return c.r >= 0; }); }
+  rows = n; draw();
+};
+document.getElementById('bCols').onclick = function(){
+  var n = Math.max(16, Math.min(40, +document.getElementById('cols').value || 16));
+  map = map.map(function(row){ return n > W ? row.concat('.'.repeat(n - W).split('')) : row.slice(0, n); });
+  W = n; document.getElementById('cols').value = n;
+  comps = comps.filter(function(c){ return c.c + COMP[c.t].w <= W; }); draw();
+};
+document.getElementById('theme').onchange = function(e){ setTheme(e.target.value); draw(); };
+['zoom','persp','grid'].forEach(function(id){ document.getElementById(id).onchange = function(){ draw(); scrollKeep(); }; });
+var keepRatio = 1;
+function scrollKeep(){ }
+function scrollStart(){ main.scrollTop = cv.height; }
+buildPal(); draw(); scrollStart();
+/*@@DEFAULT@@*/
+</script>
+</body>
+</html>

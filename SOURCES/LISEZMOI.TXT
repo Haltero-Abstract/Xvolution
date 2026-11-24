@@ -1,5 +1,4 @@
-XVOLUTION v0.1 - shoot'em up vertical en 3D pour Falcon 030 + DSP
-(inspire de Wings of Death, Thalion 1990)  -  Haltero / Abstract
+XVOLUTION v0.1 - shoot'em up vertical en 3D pour Falcon 030 + DSP  -  Haltero / Abstract
 
 FICHIERS
   XVOLUTION.S    programme principal (jeu, decor, HUD)

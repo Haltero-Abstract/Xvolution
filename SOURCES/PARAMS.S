@@ -6,6 +6,7 @@
 
 ; --- player
 NB_LIVES        equ     3               ; lives at start
+LIVES_MAX       equ     6               ; lives max (bonus at the last form : +1 life)
 SHIP_SPD        equ     4               ; ship speed
 SHIP_XMAX       equ     145             ; ship limits (world units)
 SHIP_YMAX       equ     105
@@ -20,7 +21,7 @@ MAX_STEPS       equ     3               ; late picture : up to 3 game steps (sam
 MAXB            equ     32              ; bullets on screen
 BUL_SPD         equ     10
 FIRE_T0         equ     6               ; frames between two shots (form 0, 1)
-FIRE_T2         equ     8               ; (form 2 : 3 bullets)
+FIRE_T2         equ     6               ; (form 2 : 3 bullets)
 
 ; --- enemies / bonus
 MAXE            equ     16              ; enemies on screen
@@ -39,14 +40,35 @@ BUL_R           equ     8               ; bullet / enemy
 
 ; --- scenery
 SCROLL_SPD8     equ     256             ; ground : 1/256 pixels per frame (256 = 1 px)
+LT_VBL          equ     240             ; level name screen : VBL shown (fire : shorter)
 BAKE_MAX        equ     1               ; components baked per frame (spread : no peaks)
 BAKE_NEAR       equ     232             ; ... more if one is this near the screen top (lines)
+
+; --- attack zones (W lines in LEVELn.MAP, ZONES.S : the ground stops, waves come)
+MAXAZ           equ     8               ; zones max per level
+AZ_Y            equ     100             ; the zone starts when its row is at this line
+AZ_WAVES        equ     6               ; waves per zone (W row [waves])
+AZ_FIRST        equ     40              ; frames before the 1st wave
+AZ_GAP          equ     45              ; frames between two waves
+AZ_PTS          equ     2000            ; points when the zone is cleared
+AZ_MSG_T        equ     60              ; "INCOMING !" / "ZONE CLEARED" (frames)
+AZ_TY           equ     110             ; line of that message
 
 ; --- bosses (big chips named *xxx in LEVELn.MAP : the ground stops)
 MAXBOSS         equ     8               ; bosses max per level
 BOSS_Y          equ     80              ; the fight starts when its centre is at this line
 BOSS_HP         equ     60              ; hits to destroy it
 BOSS_FIRE_T     equ     24              ; frames between two volleys (3rd = fan of 5)
+BOSS_RIP_T      equ     45              ; at least these frames on the board
+BOSS_RIP_PC     equ     50              ; % of life left when it tears off
+BOSS_RING       equ     16              ; shots all around it when it tears off
+BOSS_RINGR      equ     34              ; radius where they start
+BOSS_SCL        equ     10               ; size in the air : x BOSS_SCL / 16 of the chip
+BOSS_SPD0       equ     160             ; its speed on the figure of eight (angle x 256)
+BOSS_SPDK       equ     4               ;  + this per hit taken
+BOSS_AX         equ     125             ; half width of the eight (minus its half size)
+BOSS_AY         equ     22              ; half height
+BOSS_TOP        equ     -92             ; its top at least here (world y)
 PTS_BOSS        equ     5000
 BOSS_MSG_T      equ     90              ; "xxx DEBUGGED" (frames)
 MAXEB           equ     24              ; boss bullets on screen
@@ -120,6 +142,7 @@ LINEW           equ     54              ; (bytes of a line of text)
 MAP_MAXROWS     equ     1500            ; rows max
 MAP_MAXCOLS     equ     40              ; columns max (40 x 20 = 800 pixels = LINEB / 2)
 NB_TILES        equ     24              ; tiles in a PCBTxxx.BIN (OUTILS\MKTILES.PY)
+RECAP_PC        equ     80              ; % of the enemies to destroy : else the level again
 NB_LEVELS       equ     4               ; LEVEL1.MAP .. LEVEL4.MAP (130 XE, ST, STE, Falcon)
 MAP_DEFROWS     equ     300             ; bare board if no LEVEL1.MAP
 MAXCOMP         equ     800             ; components max
@@ -133,6 +156,7 @@ FILE_MAX        equ     65536           ; size max of LEVEL1.MAP
 
 ; --- music (MUSIQUE.S) : ZIK\ELYSIUM.MOD (DSP) in the levels, ZIK\PWRBOAT.ORG (YM) in the menu
 MUS_VOL         equ     8               ; module volume (0 .. 64)
+MENU_XDIV       equ     2               ; menu X logo : VBL per rotation step (1 = 2x faster)
 REPFREQ         equ     2               ; DSP replay : 2 = 32780 Hz
 WORKSZ          equ     20832           ; (work area of the replay : do not touch)
 YMZ_MAX         equ     16384           ; YM tune : size max of the file

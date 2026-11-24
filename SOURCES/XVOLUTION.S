@@ -39,6 +39,7 @@ start:
                 move.l  72(a1),fontoff
                 move.l  76(a1),fontdat
                 move.w  80(a1),fontw
+                bsr     font_init               ; (btext : pre-expanded font)
                 clr.l   -(sp)                   ; Super
                 move.w  #32,-(sp)
                 trap    #1
@@ -97,8 +98,10 @@ start:
                 move.w  #1,dspok
 .nodsp:         bsr     d3dload                 ; R3D answers -> d3don = 1
 
+                move.w  #1,txt_hidden           ; bottom bar : hidden at start (H)
                 bsr     joy_install
                 bsr     mus_init                ; music : DSP module, YM tune (MUSIQUE.S)
+                bsr     hs_load                 ; high scores (HISCORE.S)
                 bsr     sfx_init                ; YM sound effects (SFX.S)
                 bsr     vol_init                ; volume + / - (SFX.S)
                 bsr     prof_install            ; Timer D (PROFIL.S)
@@ -114,70 +117,61 @@ game_menu:
                 bsr     mus_stop                ; level music off,
                 bsr     ymz_start               ;  YM tune of the menu on (MUSIQUE.S)
                 bsr     menu
-                bsr     ymz_stop                    ; d0 = level 1..4, -1 = quit
+                tst.w   d0                      ; quit : the greetings first
+                bpl.s   .gm
+                bsr     gr_screen               ;  (HISCORE.S)
+.gm:            bsr     ymz_stop                    ; d0 = level 1..4, -1 = quit
                 tst.w   d0
                 bmi     game_exit
                 move.w  d0,cur_level
                 bsr     game_new                ; score, lives, form
+                clr.w   lt_prev                 ; (from the menu : no "COMPLETE")
+                clr.w   lt_fail
 level_start:
                 bsr     blank_on                ; black while the level is prepared
                 bsr     spr_prepare             ; 1st level : sprites (progress bar)
+                bsr     lt_show                 ; screen with the name of the level
                 bsr     map_load                ; LEVELn.MAP + its tiles
                 bsr     level_reset
-                bsr     mus_play                ; level music (MUSIQUE.S)
+                move.w  cur_level,d0            ; music of the level (MUSIQUE.S)
+                bsr     mus_level
                 bsr     gnd_full                ; (SOL.S)
+                bsr     lt_wait                 ; (shown LT_VBL VBL, or fire)
                 clr.w   quit
                 clr.w   lvl_done
                 clr.w   gover_end
-                move.w  #1,gsteps
-                move.l  $466.w,lastflip
+                bsr     set_pic                 ; (SOL.S : its picture)
                 bsr     blank_off               ; the level picture, ready
-                move.l  scr_show,cut_pf         ; split screen on (COUPURE.S)
+                move.w  sr,-(sp)                ; shown at once, nothing waiting
+                or.w    #$0700,sr
+                move.l  scr_show,cut_pf
+                clr.l   pend_pf
                 move.l  #bandb0,cut_band
-                move.l  #bandb0,cut_bnew
+                move.l  vbl_cnt,shown_at
+                move.l  vbl_cnt,upd_mark
+                move.w  #FPS_DIV,step_acc       ; (1st frame : one step)
                 move.w  #1,cut_act
+                move.w  (sp)+,sr
+                bsr     next_bf                 ; draw into another screen
 
 main_loop:
-                move.w  gsteps,d7               ; game steps : 1, or more if the
-                subq.w  #1,d7                   ;  last frame was late (constant
-.st:            bsr     game_update             ;  speed of the game)
+                bsr     game_steps              ; d7 = game steps : as many as
+                subq.w  #1,d7                   ;  pictures of FPS_DIV VBL went by
+.st:            bsr     game_update             ;  (constant speed of the game)
                 dbra    d7,.st
                 PROF    PR_LOG
                 bsr     render                  ; (a6 = picture, scr_show)
                 bsr     countfps
-                ; --- fixed rate : a new picture every FPS_DIV VBL (VGA 60 Hz :
-                ;     FPS_DIV 2 = 30 pictures / s, the same with few or many objects)
-.wt:            move.l  $466.w,d0               ; (_frclock : VBL counter)
-                sub.l   lastflip,d0
-                cmp.l   #FPS_DIV-1,d0
-                bge.s   .fl
-                move.w  #37,-(sp)               ; Vsync
-                trap    #14
-                addq.l  #2,sp
-                bra.s   .wt
-.fl:            bsr     cut_show                ; picture + band : written into
-                                                ;  the VIDEL at the next VBL
-                move.w  #37,-(sp)               ; Vsync : the picture is shown
-                trap    #14
-                addq.l  #2,sp
-                move.l  $466.w,d0
-                move.l  d0,d1
-                sub.l   lastflip,d0             ; VBL since the last picture
-                move.l  d1,lastflip
-                divu    #FPS_DIV,d0             ; -> game steps for next time
-                cmp.w   #1,d0
-                bge.s   .s1
-                moveq   #1,d0
-.s1:            cmp.w   #MAX_STEPS,d0
-                ble.s   .s2
-                move.w  #MAX_STEPS,d0
-.s2:            move.w  d0,gsteps
+                ; --- triple buffering : the picture waits for its VBL (taken
+                ;     by cut_vbl, a new picture every FPS_DIV VBL at most :
+                ;     30 / s in VGA) ; the 030 waits only if the picture
+                ;     before is still waiting
+.wt:            tst.l   pend_pf
+                bne.s   .wt
+                move.l  cut_bnew,pend_band      ; (split : its band)
+                move.l  scr_show,pend_pf
                 PROF    PR_VBL
-                move.l  #bufd0,d0               ; swap : the other screen
-                cmp.l   cur_bf,d0
-                bne.s   .sw
-                move.l  #bufd1,d0
-.sw:            move.l  d0,cur_bf
+                bsr     next_bf                 ; the next screen (the oldest)
                 bsr     keys
                 tst.w   quit                    ; ESC : back to the menu
                 bne     game_menu
@@ -185,12 +179,90 @@ main_loop:
                 bne     game_menu
                 tst.w   lvl_done
                 beq     main_loop
-                move.w  cur_level,d0            ; end of the level : next one
+                moveq   #100,d0                 ; end of the level : % destroyed
+                move.w  lv_spawn,d1
+                beq.s   .pc
+                move.w  lv_kill,d0
+                mulu    #100,d0
+                divu    d1,d0
+.pc:            move.w  d0,lt_pct
+                cmp.w   #RECAP_PC,d0
+                bhs.s   .rc
+                move.w  cur_level,lt_fail       ; less than RECAP_PC % : not
+                clr.w   lt_prev                 ;  recapped, the same level again
+                bra     level_start
+.rc:            clr.w   lt_fail
+                move.w  cur_level,d0            ; high scores : the level (its
+                subq.w  #1,d0                   ;  points)
+                move.l  score,d1
+                sub.l   lv_sc0,d1
+                bsr     hs_screen
+                cmp.w   #NB_LEVELS,cur_level    ; the 4 boards in a row : total
+                bne.s   .rc1
+                tst.w   run_ok
+                beq.s   .rc1
+                moveq   #4,d0
+                move.l  score,d1
+                bsr     hs_screen
+.rc1:
+                move.w  cur_level,d0            ; recapped : next one
+                move.w  d0,lt_prev              ; (its name : "... COMPLETE")
                 addq.w  #1,d0
                 cmp.w   #NB_LEVELS,d0
-                bhi     game_menu
+                bhi.s   .end
                 move.w  d0,cur_level
                 bra     level_start
+.end:           bsr     blank_on                ; the last one : all boards done
+                bsr     lt_show
+                bsr     lt_wait
+                bra     game_menu
+
+; next_bf : cur_bf = next screen (D0 -> D1 -> D2 -> D0)
+next_bf:
+                move.l  a0,-(sp)
+                move.l  cur_bf,a0
+                lea     BF_SZ(a0),a0
+                cmp.l   #bufd2,a0
+                bls.s   .ok
+                lea     bufd0,a0
+.ok:            move.l  a0,cur_bf
+                move.l  (sp)+,a0
+                rts
+
+; game_steps : d7 = game steps for this picture : the VBL gone by since
+;   the last time, FPS_DIV per step (the rest kept for next time) ; 1 to
+;   MAX_STEPS
+game_steps:
+                movem.l d0-d1,-(sp)
+                move.l  vbl_cnt,d0
+                move.l  d0,d1
+                sub.l   upd_mark,d0             ; VBL since last time
+                move.l  d1,upd_mark
+                cmp.l   #30,d0
+                bls.s   .a
+                moveq   #30,d0
+.a:             add.w   step_acc,d0             ; + rest (can be < 0 : a step
+                move.w  d0,d1                   ;  taken before its time)
+                ext.l   d0
+                divs    #FPS_DIV,d0
+                move.w  d0,d7                   ; steps
+                cmp.w   #1,d7
+                bge.s   .b
+                moveq   #1,d7
+.b:             cmp.w   #MAX_STEPS,d7
+                ble.s   .c
+                moveq   #MAX_STEPS,d7
+                moveq   #0,d1                   ; (too late : the rest forgotten)
+                bra.s   .d
+.c:             move.w  d7,d0
+                mulu    #FPS_DIV,d0
+                sub.w   d0,d1                   ; rest
+                cmp.w   #-FPS_DIV,d1
+                bge.s   .d
+                move.w  #-FPS_DIV,d1
+.d:             move.w  d1,step_acc
+                movem.l (sp)+,d0-d1
+                rts
 
 game_exit:
                 bsr     sfx_exit                ; silence, YM routing back
@@ -381,7 +453,11 @@ keys:
 ;---------------------------------------------------------------------
 ; game_new : new game (score, lives, form) ; level_reset : start of a level
 game_new:
-                clr.l   score
+                clr.w   run_ok                  ; the 4 boards in a row : from
+                cmp.w   #1,cur_level            ;  level 1 only
+                bne.s   .r
+                move.w  #1,run_ok
+.r:             clr.l   score
                 move.w  #NB_LIVES,lives
                 clr.w   form
                 clr.w   kills
@@ -394,10 +470,177 @@ blank_on:
                 trap    #14
                 addq.l  #2,sp
                 move.l  #blackscr,d0
-                bsr.s   set_base
+                jsr   set_base
                 clr.w   $ffff820e.w             ; 640-byte lines
                 movem.l (sp)+,d0-d2/a0-a2
                 rts
+; lt_show : on the black picture : level finished (lt_prev, if any), then
+;   the name of the level cur_level (or "ALL BOARDS RECAPPED" after the last)
+lt_show:
+                movem.l d0-d3/a0-a1,-(sp)
+                move.l  vbl_cnt,lt_t0
+                clr.b   lt_joy
+                lea     keyhit,a0               ; (old presses forgotten)
+                moveq   #128/4-1,d0
+.kc:            clr.l   (a0)+
+                dbra    d0,.kc
+                moveq   #2,d3                   ; (x 2)
+                move.w  lt_fail,d0              ; "800 XL NOT RECAPPED"
+                beq.s   .nf
+                lea     lt_short,a1
+                subq.w  #1,d0
+                mulu    #12,d0
+                lea     (a1,d0.w),a0
+                lea     lt_buf,a1
+.f1:            move.b  (a0)+,(a1)+
+                bne.s   .f1
+                subq.l  #1,a1
+                lea     lt_notr,a0
+.f2:            move.b  (a0)+,(a1)+
+                bne.s   .f2
+                lea     lt_buf,a0
+                moveq   #LT_Y0,d1
+                move.w  #$F800,d2               ; (red)
+                bsr     bs_text
+                bsr     lt_pctl
+                bra.s   .nx
+.nf:            move.w  lt_prev,d0              ; "800 XL COMPLETE"
+                beq.s   .nx
+                lea     lt_short,a1
+                subq.w  #1,d0
+                mulu    #12,d0
+                lea     (a1,d0.w),a0
+                lea     lt_buf,a1
+.c1:            move.b  (a0)+,(a1)+
+                bne.s   .c1
+                subq.l  #1,a1
+                lea     lt_cpl,a0
+.c2:            move.b  (a0)+,(a1)+
+                bne.s   .c2
+                lea     lt_buf,a0
+                moveq   #LT_Y0,d1
+                move.w  #$07E0,d2               ; (green)
+                bsr     bs_text
+                bsr     lt_pctl
+.nx:            move.w  cur_level,d0
+                cmp.w   lt_prev,d0
+                beq.s   .all                    ; (no next level)
+                lea     lt_num,a0               ; "LEVEL n"
+                add.b   #'0',d0
+                move.b  d0,lt_num+6
+                move.w  #LT_Y1,d1
+                move.w  #$FFE0,d2               ; (yellow, x 4)
+                moveq   #4,d3
+                bsr     bs_text
+                move.w  cur_level,d0            ; "ATARI 520 ST - 1985"
+                subq.w  #1,d0
+                mulu    #24,d0
+                lea     lt_names,a0
+                adda.w  d0,a0
+                move.w  #LT_Y2,d1
+                move.w  #$FFFF,d2
+                moveq   #2,d3
+                bsr     bs_text
+                lea     lt_ready,a0
+                move.w  #LT_Y3,d1
+                move.w  #$8C51,d2               ; (grey)
+                moveq   #2,d3
+                bsr     bs_text
+                bra.s   .x
+.all:           lea     lt_end,a0               ; the last board : the end
+                move.w  #LT_Y2,d1
+                move.w  #$FFE0,d2
+                moveq   #2,d3
+                bsr     bs_text
+.x:             movem.l (sp)+,d0-d3/a0-a1
+                rts
+
+; lt_pctl : "ENEMIES DESTROYED 62 % / 80 %" under the first line (x 1)
+lt_pctl:
+                movem.l d0-d3/a0-a1,-(sp)
+                lea     lt_buf,a1
+                lea     lt_enm,a0
+.c:             move.b  (a0)+,(a1)+
+                bne.s   .c
+                subq.l  #1,a1
+                move.w  lt_pct,d0
+                bsr     lt_dec
+                lea     lt_need,a0
+.c2:            move.b  (a0)+,(a1)+
+                bne.s   .c2
+                subq.l  #1,a1
+                moveq   #RECAP_PC,d0
+                bsr     lt_dec
+                move.b  #' ',(a1)+
+                move.b  #'%',(a1)+
+                clr.b   (a1)
+                lea     lt_buf,a0
+                moveq   #LT_Y0+15,d1
+                move.w  #$FFFF,d2
+                moveq   #1,d3
+                tst.w   lt_fail
+                beq.s   .w
+                move.w  #$FC10,d2               ; (light red)
+.w:             bsr     bs_text
+                movem.l (sp)+,d0-d3/a0-a1
+                rts
+; lt_dec : d0 (0..999) in decimal at a1+
+lt_dec:
+                movem.l d0-d1,-(sp)
+                and.l   #$ffff,d0
+                moveq   #0,d1                   ; (a digit written)
+                divu    #100,d0
+                tst.w   d0
+                beq.s   .t
+                add.b   #'0',d0
+                move.b  d0,(a1)+
+                moveq   #1,d1
+.t:             clr.w   d0
+                swap    d0
+                divu    #10,d0
+                tst.w   d1
+                bne.s   .t1
+                tst.w   d0
+                beq.s   .u
+.t1:            add.b   #'0',d0
+                move.b  d0,(a1)+
+.u:             swap    d0
+                add.b   #'0',d0
+                move.b  d0,(a1)+
+                movem.l (sp)+,d0-d1
+                rts
+
+; lt_wait : until LT_VBL VBL since lt_show (SPACE / fire : at once), then
+;   the black picture is black again
+lt_wait:
+                movem.l d0-d2/a0,-(sp)
+.w:             move.w  #37,-(sp)               ; Vsync
+                trap    #14
+                addq.l  #2,sp
+                move.b  joy1,d1                 ; fire : a new press only
+                move.b  lt_joy,d2
+                move.b  d1,lt_joy
+                not.b   d2
+                and.b   d2,d1
+                btst    #7,d1
+                bne.s   .go
+                tst.b   keyhit+KEY_SPC
+                bne.s   .go
+                move.l  vbl_cnt,d0
+                sub.l   lt_t0,d0
+                cmp.l   #LT_VBL,d0
+                blo.s   .w
+.go:            lea     keyhit,a0
+                moveq   #128/4-1,d0
+.kc:            clr.l   (a0)+
+                dbra    d0,.kc
+                lea     blackscr+LT_Y0*SCR_W*2,a0   ; texts wiped
+                move.w  #(LT_Y3+12-LT_Y0)*SCR_W/2-1,d0
+.c:             clr.l   (a0)+
+                dbra    d0,.c
+                movem.l (sp)+,d0-d2/a0
+                rts
+
 ; blank_off : the game picture scr_show again (lines of LINEB bytes)
 blank_off:
                 movem.l d0-d2/a0-a2,-(sp)
@@ -421,6 +664,9 @@ set_base:
                 rts
 
 level_reset:
+                move.l  score,lv_sc0            ; (points made in this level)
+                clr.w   lv_spawn                ; enemies of the level : come, killed
+                clr.w   lv_kill
                 clr.w   px
                 move.w  #80,py
                 move.w  #INVUL_T,inv
@@ -431,6 +677,7 @@ level_reset:
                 move.w  #60,wavet
                 clr.w   scr_acc
                 bsr     boss_init               ; (BOSS.S)
+                bsr     az_init                 ; attack zones (ZONES.S)
                 bsr     fx_reset                ; (EFFETS.S)
                 bsr     pulse_init
                 move.l  lvl_h,d0                ; start : bottom of the map
@@ -455,6 +702,8 @@ game_update:
                 bsr     fx_update               ; particles, track pulses (EFFETS.S)
                 bsr     pulse_update
                 bsr     boss_check              ; boss fight : the ground waits
+                bne.s   .g0
+                bsr     az_check                ; attack zone : too (ZONES.S)
                 bne.s   .g0
                 move.w  scr_acc,d1              ; ground scrolls down
                 add.w   #SCROLL_SPD8,d1         ;  (1/256 pixels)
@@ -486,6 +735,7 @@ game_update:
                 move.w  d0,camx
 .c0:
                 bsr     upd_bullets
+                bsr     az_update               ; waves of the zone (ZONES.S)
                 bsr     upd_enemies
                 bsr     upd_bonus
                 bsr     collide
@@ -560,12 +810,12 @@ upd_player:
                 sub.w   #16,d2
                 moveq   #0,d3
                 bsr     add_bullet
-                sub.w   #12,d1
-                addq.w  #6,d2
-                moveq   #-2,d3
+                subq.w  #7,d1                   ; (tight fan : +-7, 1 pixel
+                addq.w  #4,d2                   ;  per step aside)
+                moveq   #-1,d3
                 bsr     add_bullet
-                add.w   #24,d1
-                moveq   #2,d3
+                add.w   #14,d1
+                moveq   #1,d3
                 bsr     add_bullet
                 move.w  #FIRE_T2,firet
                 SFX     SFX_SHOT
@@ -603,7 +853,9 @@ upd_bullets:
 
 ; enemies : 16 bytes : act x y type hp t x0 -
 upd_enemies:
-                tst.w   boss_on                 ; (no new enemy during a boss)
+                tst.w   boss_on                 ; (no new enemy during a boss
+                bne.s   .mv                     ;  nor in an attack zone)
+                tst.w   az_on
                 bne.s   .mv
                 subq.w  #1,wavet
                 bne.s   .mv
@@ -643,7 +895,8 @@ spawn_enemy:
                 lea     16(a0),a0
                 dbra    d0,.l
                 rts
-.f:             bsr     rnd
+.f:             addq.w  #1,lv_spawn             ; (for the recap %)
+                bsr     rnd
                 move.w  d0,d1
                 lsr.w   #7,d1
                 and.w   #1,d1
@@ -752,9 +1005,13 @@ collide:
                 SFX     SFX_BONUS
                 add.l   #PTS_BONUS,score
                 cmp.w   #FORM_MAX,form
-                bge.s   .x
+                bge.s   .lf
                 addq.w  #1,form
 .x:             rts
+.lf:            cmp.w   #LIVES_MAX,lives        ; last form : a life more
+                bge.s   .x
+                addq.w  #1,lives
+                rts
 
 ; kill_enemy : a1 = enemy
 kill_enemy:
@@ -767,6 +1024,7 @@ kill_enemy:
                 move.l  #PTS_EN1,d0
 .s:             add.l   d0,score
                 addq.w  #1,kills
+                addq.w  #1,lv_kill              ; (for the recap %)
                 moveq   #0,d0
                 move.w  kills,d0
                 divu    #BONUS_EVERY,d0
@@ -808,6 +1066,7 @@ render:
                 bsr     ground_frame            ; scroll + erasing (SOL.S)
                 PROF    PR_SOL
                 PROF    PR_CMP                  ; (components : baked in the ground)
+                move.w  #TOP_H,clip_y0          ; objects : never in the top band
                 bsr     pulse_render            ; on the board : pulses, recapped
                 bsr     fx_fixed                ;  chips, shadow of the ship
                 tst.w   gover
@@ -820,10 +1079,19 @@ render:
                 lsl.w   #2,d0
                 move.l  (a0,d0.w),a0
                 bsr     fx_shadow
-.ns:            move.w  #SHIP_Z,mdl_z
+.ns:            bsr     boss_draw               ; boss torn off (BOSS.S)
+                move.w  #SHIP_Z,mdl_z
                 tst.w   bon_act
                 beq.s   .ne
-                lea     mdl_bonus,a0
+                move.w  bon_x,d0                ; (precomputed : EFFETS.S)
+                move.w  bon_y,d1
+                bsr     w2s
+                lea     bon_tab,a2
+                tst.w   d3don
+                beq.s   .bm
+                bsr     spr_blit
+                bra.s   .ne
+.bm:            lea     mdl_bonus,a0            ; (030 : the model)
                 move.w  bon_x,d6
                 move.w  bon_y,d7
                 bsr     draw_model
@@ -863,29 +1131,11 @@ render:
                 muls    #FOC,d1
                 divs    #SHIP_Z,d1
                 add.w   #CY,d1
-                bsr     obj_begin
-                move.w  d0,d2                   ; trail : solid, 2 wide (fast :
-                move.w  d1,d3                   ;  no 50 % mix any more)
-                add.w   #12,d3
-                addq.w  #4,d1
-                move.w  #TRAIL_B,d4
-                bsr     fillrect
-                subq.w  #1,d0                   ; core : 4 x 7, yellow edge
-                addq.w  #2,d2
-                sub.w   #9,d1
-                sub.w   #6,d3
-                move.w  #GLOW_B,d4
-                bsr     fillrect
-                addq.w  #1,d0                   ;  white centre
-                subq.w  #1,d2
-                addq.w  #1,d1
-                subq.w  #1,d3
-                move.w  #$FFF0,d4
-                bsr     fillrect
-                bsr     obj_end
+                bsr     draw_pbul
 .bn:            addq.l  #8,a2
                 dbra    d5,.b
                 bsr     boss_render             ; its bullets, life bar (BOSS.S)
+                bsr     az_render               ; "INCOMING !" (ZONES.S)
                 bsr     fx_render               ; explosions (EFFETS.S)
                 PROF    PR_BUL
                 tst.w   gover
@@ -905,6 +1155,7 @@ render:
                 move.w  py,d7
                 bsr     draw_model
 .np:            PROF    PR_SHP
+                clr.w   clip_y0
                 bsr     draw_hud
                 bsr     draw_band               ; bottom bar (H)
                 tst.w   cut_on                  ; (split : the band is not in the
@@ -925,6 +1176,82 @@ render:
                 move.w  #129,d3
                 bsr     add_rect
 .ng:            PROF    PR_HUD
+                rts
+
+; draw_pbul : player bullet at screen d0, d1 : 4 x 12 yellow, white centre
+;   2 x 10, orange tail 1 x 6 under it ; in the screen : written directly
+;   (no clipping, one rectangle), else by fillrect
+draw_pbul:
+                cmp.w   #-4,d0                  ; out of the screen : nothing
+                blt     .out
+                cmp.w   #SCR_W+4,d0
+                bgt     .out
+                movem.l d0-d5/a0,-(sp)
+                cmp.w   #1,d0
+                blt    .slow
+                cmp.w   #SCR_W-3,d0
+                bgt    .slow
+                move.w  d1,d2
+                subq.w  #5,d2
+                cmp.w   clip_y0,d2
+                blt    .slow
+                move.w  d1,d3
+                add.w   #12,d3
+                cmp.w   clip_y1,d3
+                bgt    .slow
+                movem.w d0-d3,-(sp)             ; erased next time
+                move.w  d2,d1
+                move.w  d0,d2
+                addq.w  #2,d2
+                subq.w  #1,d0
+                bsr     add_rect
+                movem.w (sp)+,d0-d3
+                mulu    #LINEB,d2               ; a0 = top left (x-1, y-5)
+                lea     (a6,d2.l),a0
+                add.w   d0,d0
+                lea     -2(a0,d0.w),a0
+                move.l  #GLOW_B<<16+GLOW_B,d4   ; yellow x 2
+                move.l  #$FFF0FFF0,d5           ; white x 2
+                move.w  #TRAIL_B,d3
+                move.l  d4,(a0)                 ; row 0 : Y Y Y Y
+                move.l  d4,4(a0)
+PBI               set     1
+                rept    10                      ; rows 1..10 : Y W W Y
+                move.w  d4,PBI*LINEB(a0)
+                move.l  d5,PBI*LINEB+2(a0)
+                move.w  d4,PBI*LINEB+6(a0)
+PBI               set     PBI+1
+                endr
+                move.l  d4,11*LINEB(a0)         ; row 11 : Y Y Y Y
+                move.l  d4,11*LINEB+4(a0)
+PBI               set     12
+                rept    6                       ; rows 12..17 : tail
+                move.w  d3,PBI*LINEB+2(a0)
+PBI               set     PBI+1
+                endr
+                movem.l (sp)+,d0-d5/a0
+.out:           rts
+.slow:          bsr     obj_begin               ; (edge of the screen)
+                move.w  d0,d2                   ; trail
+                move.w  d1,d3
+                add.w   #12,d3
+                addq.w  #7,d1
+                move.w  #TRAIL_B,d4
+                bsr     fillrect
+                subq.w  #1,d0                   ; 4 x 12 yellow
+                addq.w  #2,d2
+                sub.w   #12,d1
+                sub.w   #6,d3
+                move.w  #GLOW_B,d4
+                bsr     fillrect
+                addq.w  #1,d0                   ; 2 x 10 white
+                subq.w  #1,d2
+                addq.w  #1,d1
+                subq.w  #1,d3
+                move.w  #$FFF0,d4
+                bsr     fillrect
+                bsr     obj_end
+                movem.l (sp)+,d0-d5/a0
                 rts
 
 ; draw_model : a0 = model (x0 y0 x1 y1 z0 z1 .w, colours .l ; -99 = end),
@@ -1048,9 +1375,33 @@ draw_hud:
                 cmp.l   #bufd0,cur_bf           ;  above the picture (COUPURE.S)
                 beq.s   .b0
                 lea     bandb1,a6
+                cmp.l   #bufd1,cur_bf
+                beq.s   .b0
+                lea     bandb2,a6
 .b0:            move.l  a6,cut_bnew
-.bp:            ; --- the black band at the top (TOP_H lines, drawn last)
-                moveq   #0,d0
+.bp:            ; --- the black band at the top (TOP_H lines, drawn last) :
+                ;     in the picture, the same place and the same things as
+                ;     the last time in this screen : already there (no object
+                ;     is drawn in it : clip_y0) -> nothing to do
+                tst.w   vol_show                ; (volume bar : time left)
+                beq.s   .v0
+                subq.w  #1,vol_show
+.v0:            bsr     hud_sig                 ; d0 = what the band shows
+                tst.w   cut_on
+                bne.s   .dr
+                move.l  cur_bf,a0
+                move.w  cur_b0,d1
+                move.w  cur_camx,d2
+                cmp.w   BF_HL(a0),d1
+                bne.s   .new
+                cmp.w   BF_HX(a0),d2
+                bne.s   .new
+                cmp.l   BF_HS(a0),d0
+                beq     .same
+.new:           move.w  d1,BF_HL(a0)
+                move.w  d2,BF_HX(a0)
+                move.l  d0,BF_HS(a0)
+.dr:            moveq   #0,d0
                 moveq   #0,d1
                 moveq   #0,d2
                 moveq   #0,d3
@@ -1087,27 +1438,26 @@ draw_hud:
                 addq.w  #1,d7
                 cmp.w   form,d7
                 ble.s   .f
-                ; --- lives : green squares (8 at most)
+                ; --- lives : small green squares (LIVES_MAX at most)
                 move.w  lives,d7
                 beq.s   .nl
-                cmp.w   #8,d7
+                cmp.w   #LIVES_MAX,d7
                 bls.s   .l0
-                moveq   #8,d7
+                moveq   #LIVES_MAX,d7
 .l0:            subq.w  #1,d7
 .l:             move.w  d7,d0
-                lsl.w   #3,d0
+                lsl.w   #2,d0                   ; 4 pixels apart, 3 wide
                 add.w   #88,d0
                 move.w  d0,d2
-                addq.w  #5,d2
-                moveq   #5,d1
-                moveq   #10,d3
+                addq.w  #2,d2
+                moveq   #6,d1
+                moveq   #9,d3
                 move.w  #$07E0,d4
                 bsr     fillrect
                 dbra    d7,.l
 .nl:            ; --- + / - : volume bar (16 boxes, full if volume > 4 * box)
                 tst.w   vol_show
                 beq.s   .nv
-                subq.w  #1,vol_show
                 moveq   #0,d5
 .vb:            move.w  d5,d0
                 mulu    #6,d0
@@ -1126,14 +1476,14 @@ draw_hud:
                 addq.w  #1,d5
                 cmp.w   #16,d5
                 blt.s   .vb
-.nv:            ; --- level (x 118)
+.nv:            ; --- level (x 136)
                 move.w  cur_level,d0
                 subq.w  #1,d0
                 and.w   #3,d0
                 lsl.w   #3,d0
                 lea     t_lvls,a2
                 add.w   d0,a2
-                move.w  #118,d0
+                move.w  #136,d0
                 moveq   #5,d1
                 move.w  #$867F,d6
                 bsr     btext
@@ -1193,7 +1543,7 @@ draw_hud:
                 move.w  #300,d0
                 move.w  #$BDF7,d6
                 bsr     btext
-                move.l  (sp)+,a6                ; --- game over : red band
+.same:          move.l  (sp)+,a6                ; --- game over : red band
                 tst.w   gover
                 beq.s   .x
                 move.w  gover,d0
@@ -1208,22 +1558,102 @@ draw_hud:
 .x:             movem.l (sp)+,d0-d7/a0-a6
                 rts
 
-; btext : string a2 (0 = end) at d0 = x, d1 = y, colour d6 (TOS 6x6 font)
+; hud_sig : d0.l = a number made of all the band shows (score, form, lives,
+;   volume bar, level, DSP / 030, REC blink, pause, FPS, split test)
+hud_sig:
+                move.l  d1,-(sp)
+                move.l  score,d0
+                moveq   #5,d1
+                rol.l   d1,d0
+                add.w   form,d0
+                rol.l   d1,d0
+                add.w   lives,d0
+                rol.l   d1,d0
+                add.w   cur_level,d0
+                rol.l   d1,d0
+                add.w   d3don,d0
+                rol.l   d1,d0
+                add.w   paused,d0
+                rol.l   d1,d0
+                add.w   fps,d0
+                rol.l   d1,d0
+                tst.w   vol_show
+                beq.s   .v
+                add.w   vol_lev,d0
+                add.w   #1000,d0
+.v:             rol.l   d1,d0
+                tst.w   pr_rec
+                beq.s   .r
+                move.w  fx_clock,d1
+                and.w   #8,d1
+                add.w   #2000,d1
+                add.w   d1,d0
+                moveq   #5,d1
+.r:             rol.l   d1,d0
+                add.w   cut_on,d0
+                add.w   cut_lshow,d0
+                move.l  (sp)+,d1
+                rts
+
+; btext : string a2 (0 = end) at d0 = x, d1 = y, colour d6 (TOS 6x6 font,
+;   pre-expanded by font_init : 6 rows of 6 bits per character)
 btext:
-                movem.l d0-d7/a0-a4,-(sp)
+                movem.l d0-d3/a0-a4,-(sp)
                 moveq   #0,d2
                 move.w  d1,d2
                 mulu    #LINEB,d2
                 lea     (a6,d2.l),a4
                 add.w   d0,d0
                 adda.w  d0,a4
+                lea     font6,a3
 .ch:            moveq   #0,d0
                 move.b  (a2)+,d0
                 beq.s   .x
+                lsl.w   #3,d0
+                lea     (a3,d0.w),a1            ; its 6 rows
+                move.l  a4,a0
+                moveq   #5,d3
+.fl:            move.b  (a1)+,d2                ; row : bits 7..2
+                beq.s   .nr
+                add.b   d2,d2
+                bcc.s   .p1
+                move.w  d6,(a0)
+.p1:            add.b   d2,d2
+                bcc.s   .p2
+                move.w  d6,2(a0)
+.p2:            add.b   d2,d2
+                bcc.s   .p3
+                move.w  d6,4(a0)
+.p3:            add.b   d2,d2
+                bcc.s   .p4
+                move.w  d6,6(a0)
+.p4:            add.b   d2,d2
+                bcc.s   .p5
+                move.w  d6,8(a0)
+.p5:            add.b   d2,d2
+                bcc.s   .nr
+                move.w  d6,10(a0)
+.nr:            lea     LINEB(a0),a0
+                dbra    d3,.fl
+                lea     12(a4),a4
+                bra.s   .ch
+.x:             movem.l (sp)+,d0-d3/a0-a4
+                rts
+
+; font_init : font6 = the 6x6 TOS font (Line-A) : 8 bytes per character
+;   (6 rows, bits 7..2 = the 6 pixels) ; nothing for the space and below
+font_init:
+                movem.l d0-d5/a0-a2,-(sp)
+                lea     font6,a2
+                moveq   #0,d5                   ; character
+.c:             move.l  a2,a0
+                clr.l   (a0)+
+                clr.l   (a0)+
+                move.w  d5,d0
                 cmp.w   #' ',d0
-                bls.s   .nc
+                bls.s   .n
                 sub.w   fontfirst,d0
-                bmi.s   .nc
+                bmi.s   .n
                 add.w   d0,d0
                 move.l  fontoff,a1
                 move.w  (a1,d0.w),d3
@@ -1232,25 +1662,22 @@ btext:
                 move.l  fontdat,a1
                 adda.w  d0,a1
                 and.w   #7,d3
-                move.l  a4,a3
+                move.l  a2,a0
                 moveq   #5,d4
-.fl:            move.b  (a1),d2
+.r:             move.b  (a1),d2
                 lsl.w   #8,d2
                 move.b  1(a1),d2
                 lsl.w   d3,d2
-                moveq   #5,d5
-                move.l  a3,a0
-.pb:            add.w   d2,d2
-                bcc.s   .p0
-                move.w  d6,(a0)
-.p0:            addq.l  #2,a0
-                dbra    d5,.pb
-                lea     LINEB(a3),a3
+                lsr.w   #8,d2
+                and.b   #$fc,d2
+                move.b  d2,(a0)+
                 adda.w  fontw,a1
-                dbra    d4,.fl
-.nc:            lea     12(a4),a4
-                bra.s   .ch
-.x:             movem.l (sp)+,d0-d7/a0-a4
+                dbra    d4,.r
+.n:             addq.l  #8,a2
+                addq.w  #1,d5
+                cmp.w   #256,d5
+                blt.s   .c
+                movem.l (sp)+,d0-d5/a0-a2
                 rts
 
 ; draw_num : d0.l = value, d1 = x, d2 = y (digits 3x5, pixels 2x2, white)
@@ -1535,16 +1962,39 @@ bvx_add:        rts
                 include 'CARTE.S'
                 include 'COMPOS.S'
                 include 'BOSS.S'
+                include 'ZONES.S'
                 include 'EFFETS.S'
                 include 'COUPURE.S'
                 include 'SFX.S'
                 include 'MUSIQUE.S'
+                include 'HISCORE.S'
                 include 'PROFIL.S'              ; (code)
                 include 'DSP3D.S'
                 include 'AMIGADSP.S'
 
 ;=====================================================================
                 section data
+; level screen (lt_show) : lines and texts
+LT_Y0           equ     64                      ; "xxx COMPLETE"
+LT_Y1           equ     96                      ; "LEVEL n" (x 4)
+LT_Y2           equ     136                     ; name of the board
+LT_Y3           equ     168                     ; "GET READY"
+lt_short:       dc.b    '800 XL',0,0,0,0,0,0    ; (12 bytes each)
+                dc.b    '520 ST',0,0,0,0,0,0
+                dc.b    'STE',0,0,0,0,0,0,0,0,0
+                dc.b    'FALCON 030',0,0
+lt_names:       dc.b    'ATARI 800 XL - 1983',0,0,0,0,0     ; (24 bytes each)
+                dc.b    'ATARI 520 ST - 1985',0,0,0,0,0
+                dc.b    'ATARI STE - 1989',0,0,0,0,0,0,0,0
+                dc.b    'FALCON 030 - 1992',0,0,0,0,0,0,0
+lt_cpl:         dc.b    ' COMPLETE',0
+lt_notr:        dc.b    ' NOT RECAPPED',0
+lt_enm:         dc.b    'ENEMIES DESTROYED ',0
+lt_need:        dc.b    ' %  -  NEEDED ',0
+lt_num:         dc.b    'LEVEL 1',0
+lt_ready:       dc.b    'GET READY',0
+lt_end:         dc.b    'ALL BOARDS RECAPPED !',0
+                even
                 even
 ikbd_joy:       dc.b    $14                     ; joystick events
 ikbd_mouse:     dc.b    $08                     ; mouse back (relative)
@@ -1662,40 +2112,46 @@ mdl_f2:         ; form 2 : all red
                 dc.w    -2,-15,2,15,1,8
                 dc.l    col_red
                 dc.w    -99
+; enemies seen from the SIDE (turned 90 degrees : their shape shows from
+;   above), turned 180 degrees : legs behind (top of the screen)
 mdl_en0:                                        ; enemy 1 = green LED (5 mm)
-                dc.w    -6,-6,6,6,6,14
+                dc.w    -6,-4,6,-2,3,13
+                dc.l    col_ledg                ;  rim
+                dc.w    -5,-2,5,6,3,13
                 dc.l    col_ledg                ;  body
-                dc.w    -4,-4,4,4,3,6
+                dc.w    -4,6,4,10,4,12
                 dc.l    col_ledl                ;  dome (lit)
-                dc.w    -1,-1,1,1,2,3
+                dc.w    -2,6,0,8,2,3
                 dc.l    col_white               ;  (light spot)
-                dc.w    -10,-1,-6,1,12,14
-                dc.l    col_wing                ;  legs
-                dc.w    6,-1,10,1,12,14
+                dc.w    -3,-13,-2,-4,7,9
+                dc.l    col_wing                ;  legs (one longer)
+                dc.w    2,-11,3,-4,7,9
                 dc.l    col_wing
                 dc.w    -99
 mdl_en2:                                        ; enemy 2 = blue capacitor
-                dc.w    -7,-7,7,7,5,16
+                dc.w    -6,-9,6,9,3,15
                 dc.l    col_disk                ;  can
-                dc.w    -5,-5,5,5,4,5
+                dc.w    -5,9,5,10,4,14
                 dc.l    col_wing                ;  aluminium top
-                dc.w    -1,-5,1,5,3,4
-                dc.l    col_dark                ;  (vent cross)
-                dc.w    -5,-1,5,1,3,4
-                dc.l    col_dark
-                dc.w    -7,-7,-4,7,4,6
+                dc.w    -6,-9,-3,9,2,3
                 dc.l    col_white               ;  (- stripe)
+                dc.w    -3,-14,-2,-9,8,10
+                dc.l    col_wing                ;  legs
+                dc.w    2,-14,3,-9,8,10
+                dc.l    col_wing
                 dc.w    -99
 mdl_en1:                                        ; enemy 3 = TO-92 transistor
-                dc.w    -7,-6,7,3,5,14
-                dc.l    col_black               ;  body (flat side down)
-                dc.w    -5,-4,5,1,4,5
+                dc.w    -6,-3,6,7,4,12
+                dc.l    col_black               ;  body (flat face to us)
+                dc.w    -4,7,4,9,5,11
+                dc.l    col_black               ;  (round top)
+                dc.w    -4,0,4,4,3,4
                 dc.l    col_dark                ;  (marking)
-                dc.w    -6,3,-4,11,11,13
+                dc.w    -5,-12,-4,-3,7,9
                 dc.l    col_wing                ;  3 legs
-                dc.w    -1,3,1,11,11,13
+                dc.w    -1,-12,1,-3,7,9
                 dc.l    col_wing
-                dc.w    4,3,6,11,11,13
+                dc.w    4,-12,5,-3,7,9
                 dc.l    col_wing
                 dc.w    -99
 mdl_bonus:                                      ; bonus pod : evolution
@@ -1735,8 +2191,9 @@ cur_bf:         ds.l    1                       ; screen being drawn
 cur_b0:         ds.w    1                       ; its 1st line in the tall buffer
 gbuf:           ds.l    1                       ; clean ground
 g_last:         ds.l    1
-bufd0:          ds.b    BF_SZ
-bufd1:          ds.b    BF_SZ
+bufd0:          ds.b    BF_SZ                   ; the 3 screens (in this order :
+bufd1:          ds.b    BF_SZ                   ;  next_bf)
+bufd2:          ds.b    BF_SZ
                 even
 blackscr:       ds.b    SCR_W*2*SCR_H           ; black picture (loading)
 old118:         ds.l    1
@@ -1773,6 +2230,17 @@ firet:          ds.w    1
 kills:          ds.w    1
 gover:          ds.w    1
 gover_end:      ds.w    1
+lt_fail:        ds.w    1                       ; level not recapped (0 : none)
+lt_pct:         ds.w    1                       ; % of its enemies destroyed
+lv_sc0:         ds.l    1                       ; score at the start of the level
+run_ok:         ds.w    1                       ; started at level 1 (4 boards)
+lv_spawn:       ds.w    1                       ; enemies come in this level
+lv_kill:        ds.w    1                       ;  and destroyed
+lt_prev:        ds.w    1                       ; level just finished (0 : none)
+lt_t0:          ds.l    1                       ; vbl_cnt when the level screen came
+lt_joy:         ds.b    1
+                even
+lt_buf:         ds.b    48
 lvl_done:       ds.w    1
 cur_level:      ds.w    1
 camx:           ds.w    1                       ; camera : column of the screen
@@ -1784,8 +2252,8 @@ bon_x:          ds.w    1
 bon_y:          ds.w    1
 gpos:           ds.l    1
 mdl_z:          ds.w    1
-gsteps:         ds.w    1                       ; game steps per picture
-lastflip:       ds.l    1                       ; VBL of the last picture
+upd_mark:       ds.l    1                       ; vbl_cnt at the last game steps
+step_acc:       ds.w    1                       ; VBL not yet turned into steps
 fps:            ds.w    1
 fpscnt:         ds.w    1
 fpsclk:         ds.l    1
@@ -1794,6 +2262,7 @@ fontfirst:      ds.w    1
 fontw:          ds.w    1
 fontoff:        ds.l    1
 fontdat:        ds.l    1
+font6:          ds.b    256*8                   ; font_init
 numbuf:         ds.b    10
 linebuf:        ds.b    2*LINEW
                 even
@@ -1801,4 +2270,4 @@ digbuf:         ds.b    6
                 even
 bullets:        ds.w    MAXB*4                  ; act x y dx
 enemies:        ds.w    MAXE*8                  ; act x y type hp t x0 -
-tallmem:        ds.b    3*TALLSZ+256            ; G, D0, D1
+tallmem:        ds.b    4*TALLSZ+256            ; G, D0, D1, D2

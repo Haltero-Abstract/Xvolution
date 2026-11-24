@@ -6,6 +6,7 @@
 ;   ; comment            SEU 1            SIZE 16 <rows>
 ;   <rows lines of 16 tile characters>   row 0 = END of the level (top),
 ;                                        last row = START (bottom)
+;   W <row> [waves]      attack zone (ZONES.S)
 ;   C <type> <col> <row> [name]   component (letters of comp_types), top-left
 ;                          tile, optional name printed on it (11 chars, _ = space)
 ;   END
@@ -43,6 +44,7 @@ map_load:
                 addq.w  #1,d1
                 bra.s   .c
 .c1:            clr.w   ncomps
+                clr.w   naz                     ; (attack zones : ZONES.S)
                 move.w  #1,map_err
                 move.w  #MAP_DEFROWS,map_rows   ; (bare board if no file)
                 move.w  #16,map_cols
@@ -135,7 +137,11 @@ map_load:
                 beq     .done
                 cmp.b   #'E',(a0)               ; END
                 beq     .done
-                cmp.b   #'C',(a0)
+                cmp.b   #'W',(a0)               ; W row [waves] : attack zone
+                bne.s   .cw
+                bsr     az_parse
+                bra     .cn
+.cw:            cmp.b   #'C',(a0)
                 bne.s   .cn
                 cmp.w   #MAXCOMP,ncomps
                 bhs.s   .cn
