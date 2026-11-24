@@ -1,6 +1,7 @@
 ;=====================================================================
 ; MUSIQUE.S - MUSIC (included by XVOLUTION.S)
-;   In the levels : a module ZIK\ELYSIUM.MOD played by the DSP (Simplet's
+;   In the levels : a module per level (mod_tab : TRANSLOG, CRASH1,
+;   CYBERIDE, ELYSIUM in ZIK\, loaded at the start of the level) played by the DSP (Simplet's
 ;   replay AMIGADSP.S, loaded with R3D by d3dinit, like RICK3D's
 ;   MUSIQUE.S) ; the YM stays free for the sound effects (SFX.S).
 ;   In the menu : the YM tune ZIK\PWRBOAT.ORG = a COSO block by Jochen
@@ -27,8 +28,8 @@ mus_init:
                 bsr     MGTK_Set_Replay_Frequency
                 st      MGTK_Restart_Loop       ; end of the module : again
                 move.w  #1,mus_saved
-                lea     mod_name,a0
-                bsr     mus_load
+                clr.w   mus_cur                 ; (module : loaded per level,
+                clr.l   mod_base                ;  mus_level)
 .ym:            bsr     ymz_load
                 movem.l (sp)+,d0-d7/a0-a6
                 rts
@@ -58,6 +59,36 @@ mus_play:
                 movem.l (sp)+,d0-d7/a0-a6
                 move.w  #1,mus_on
                 bsr     sfx_route               ; (YM still in the output)
+.x:             rts
+
+; mus_level : d0 = level 1..4 : its module (mod_tab) loaded if it is not
+;   the one in memory (the old one stopped and freed), then played
+mus_level:
+                tst.w   dspok
+                beq.s   .x
+                cmp.w   mus_cur,d0
+                beq.s   .p
+                movem.l d0-d7/a0-a6,-(sp)
+                move.w  d0,-(sp)
+                bsr     mus_stop
+                clr.w   musok
+                move.l  mod_base,d0             ; old module : memory back
+                beq.s   .nf
+                move.l  d0,-(sp)                ; Mfree
+                move.w  #$49,-(sp)
+                trap    #1
+                addq.l  #6,sp
+                clr.l   mod_base
+.nf:            move.w  (sp)+,d0
+                move.w  d0,mus_cur
+                subq.w  #1,d0
+                and.w   #3,d0
+                lsl.w   #2,d0
+                lea     mod_tab,a0
+                move.l  (a0,d0.w),a0
+                bsr     mus_load
+                movem.l (sp)+,d0-d7/a0-a6
+.p:             bra     mus_play
 .x:             rts
 
 ; mus_stop : the module stops (menu)
@@ -268,13 +299,18 @@ ymw11:          move.w  sr,-(sp)
 
 ;---------------------------------------------------------------------
                 section data
-mod_name:       dc.b    'ZIK\ELYSIUM.MOD',0
+mod_tab:        dc.l    mod_n1,mod_n2,mod_n3,mod_n4     ; module of each level
+mod_n1:         dc.b    'ZIK\TRANSLOG.MOD',0
+mod_n2:         dc.b    'ZIK\CRASH1.MOD',0
+mod_n3:         dc.b    'ZIK\CYBERIDE.MOD',0
+mod_n4:         dc.b    'ZIK\ELYSIUM.MOD',0
 ymz_name:       dc.b    'ZIK\PWRBOAT.ORG',0
                 even
 
                 section bss
 musok:          ds.w    1                       ; module ready
 mus_on:         ds.w    1                       ; module playing
+mus_cur:        ds.w    1                       ; level of the module in memory (0 : none)
 mus_saved:      ds.w    1                       ; DSP sound saved (to give back)
 mus_fh:         ds.w    1
 mus_path:       ds.l    1

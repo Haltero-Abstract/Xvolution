@@ -1,0 +1,214 @@
+; SHOTEMUP level map - made by PCB2MAP.PY from a real Atari board
+; source : 6000825_R1.1(RC).GTL
+; scale 6.35 mm per tile, board turned 90 degrees, columns 0..39 of 40 kept
+; components omitted : A=2 K=58 N=45 R=50 U=9 Z=8
+; see CREDITS.TXT for the licences of the source boards
+SEU 1
+THEME falcon
+SIZE 40 70
+#ooooo####ooooo###oo##o..ooooo.o...oo...
+o#o#O#o#O#OooOo#######ooooo.o.oo.ooo....
+#ooo...oorJo.ooo.oo...o..oo.oo..oo..o7..
+#.o......o.o.o.o...o.oraoooo-7.....o.|..
+o.oO7....Oo.oooooTToooLToooooi.o.o.or3O.
+o.o|ioo..|.oi.ooo++T7ooioiE3i|o|.o..|i..
+#o.|E3o..|.iio7or+++3.oE7iv|vioJoio.EJ..
+oooiiETo.|r3ET+aJivi|.r3|vv|v|.r+Joo|.o.
+#ooiL+W-7|vi|vir-W3E3.iviE+JLJ.|io.o3oo.
+ooo|oio.L3|oE+3E-T3E3.E3iE3.o..i|...o...
+#roio3EToE3oEW3io3ivi.E++++7t..||...o...
+#ioET+W+aW3o|.iio3E3|.|E3|iE7..|i..o7o..
+#io+WWa+To|.io||oE3|i.|vvv|E+TTJir7o|.o.
+oi.|...o|.oooiv|E3|v|.iE3iE++3EoE3|o|...
+#i.i.o.r3r-3oE3iiE3E3oE3iviE3iE7E3L3|...
+#io|.io|iEaW+++3E3|vvivviE3iiE3iE+-+W7..
+#i.ET3r3||r7iE+3ivvvvvvviiE3|viiE3r3o3..
+#i.i|||viE+3EW3|E3iiE3iioivvv|E+3E+3oWo.
+oi.EJ|iv|E+3E7EJ|vv|E3iir3E3|vvv|EW+To..
+#|o3o|E++3iiE+3oE3E3EW+3E+3|vvvvvio+JoO.
+oi.L3iE+JoE3iv|o|vviE7E+3E+3||E+++a3....
+#|ooii|ETaJE++3|vvvvioE+3iv|E3EJiETJ....
+#iooio|iLToivvvvvvvv|.oivvvvv||oL+W-7...
+oiooirJEa3oE3E3ivvvv|.o3ivv|v|o|oWa-3.O.
+#ii.|ooE7ir3ivviE3E+3.oivvvv|E7io..o|...
+#iL7ioiL3L3E3E+3ivvv|..|v|E3|v||....|oO.
+#ooE3oL7ET+3|E++3iv|E7.E+3iiE+3io...|Lo.
+oo.i|ooiEW+3E++W3iE3i|.E3E+3||EJo...o...
+O..||..|ET++3E+7ivvvv|.|viE3|iEaoo......
+oooL3o.iiE+3E+3E3|vvv|r3E3E+3LWoo.......
+#.oo|..iviE++3iiE+3iE+3|v|E+Jo.o........
+#..oo.o|viE+JE+3|vvvv|vvvvvio.oo........
+oo..t..|E3iioivvvvvviE3ivvvio..o......O.
+#oo.o..|iv|oo||E3|vviE+3E3iE7...........
+#.o...oE3||..|vvvvv|EJ|viEW3i.........O.
+ooo.o..o|E3.oivvviE3EoiiL+a3|...........
+ooo..oor3i|oivvvvvv|ET3Ea+7||...........
+o.o..o.oi|v|vvvvv|E3||E3oE+3|...........
+o...ooo.i|vvvvvvvvvvvv|E+3|v|.........O.
+o.oooo..E3E3|vvvvvviE+Jivvvv|...oo......
+#.....ooE++3|vvvvvvvv|.|vvvvioa-7|.o....
+#.o.oo..LJ|vvvvvvvvvv|r3E+3E3..o|i.o....
+#.o.......|viE3iE3|vvviiE++W+7oiEWT7.r7.
+#o.o.....o|E+3E+3E3|vvvviL3rJi|v|o|i.o|.
+#.........oE+3E+3|vv|E3i|.E3o|||o.L3or3.
+#oo........|E++3ivviE3|vi.|o.io|o..|.EJ.
+#........o.|viE3|vvvvvvv|oio7L7io.ooo|O.
+#o.......|.|E3||E3|vvvvvv||oE7o|oooo.o..
+#........o.|vvvvvvvvvvviE3||E3oE+3iE7.Oo
+#o......o7.|vvvvvvvvvv|E+3||E3|E+Jiv|ro.
+#.o.....o3.|E3|vvvvv|E3E+3iivvv|E7|vv|..
+#o.o....r3.||vvvv|E3||vviE3i|E+JiiE3E3..
+#oo.....oo.|vvvviE3iv|E+3iiE3EJ.|o|L+J..
+#..o.......|v|E3iE3i|L+3|v|E+3.oo.o.L7..
+oooO.....O.|vv|E3ivv|.E3|viE3ET7oo##.|..
+#.o........oivv|E+3iE-W3iviE+++J|####oO.
+#oo.........|viE3EJ||.oiE+++JEW-Jo#oooo.
+.oo.........o|vv|ET+3oiiE3E3oio.ooo####.
+o............iiE+JoE+7E3ivvviE+7o####oo.
+..o..........EJo|.r++3iiE3|E3EJi#####...
+..o..........|oto.o|EWWW+3|v||r+7o#t#ro.
+.oo..........EaaaaoiEa7o++W+3EWW3####o..
+...o.........EaTTTa3ETWa+3r3ii..ooo##oo.
+oo...........ET+++T+++TT+3E+W+7r7.....O.
+.ooo.........ioLWWW+WW3L3E++7iivi..ro...
+o............iotoo-3..|r+++3L+3E3.oJ.ro.
+.oo..........Lao..o+7.|EW3iE7ii|o...O3..
+...o........o......L+-WJ.LWWW3o|..r-J|..
+...o........Oo######L--o###ooooJ##o##oOt
+............############################
+C V 5 0
+C V 10 0
+C V 30 0
+C V 35 0
+C V 25 1
+C A 16 2
+C A 9 3
+C D 32 3
+C O 18 5
+C D 27 5
+C Z 30 5
+C H 35 5
+C N 5 6
+C O 13 6
+C N 34 6
+C Z 38 6
+C O 4 7
+C A 17 7
+C O 36 7
+C N 1 8
+C H 9 8
+C O 18 8
+C Q 23 8 MFP_68901
+C O 31 8
+C O 13 9
+C Z 34 9
+C O 36 9
+C A 9 10
+C X 21 10
+C X 32 10
+C O 2 11
+C O 4 11
+C O 7 11
+C O 27 11
+C D 36 11
+C Z 38 11
+C O 25 12
+C Q 30 12
+C Z 34 12
+C A 16 13
+C D 27 14
+C V 38 14
+C D 3 15
+C D 5 15
+C F 11 15 *68030
+C A 8 16
+C D 29 16
+C H 16 17
+C A 20 17
+C Q 22 17 68882
+C A 15 18
+C V 37 19
+C A 17 20
+C O 32 20
+C O 34 20
+C D 3 21
+C D 5 21
+C O 8 21
+C O 29 21
+C A 19 22
+C O 34 22
+C Z 22 23
+C N 32 24
+C Q 11 26 COMBEL
+C N 29 26
+C D 4 27
+C V 37 27
+C H 28 30
+C Z 15 31
+C N 6 32
+C X 5 33
+C X 19 33
+C Q 22 33 *VIDEL
+C V 37 34
+C N 6 35
+C O 8 36
+C N 5 37
+C N 18 37
+C H 9 38
+C O 8 39
+C N 35 39
+C N 5 40
+C X 5 41
+C X 8 41
+C Q 25 41
+C V 37 41
+C Q 12 42 TOS_ROM
+C D 30 42
+C Z 23 43
+C N 34 43
+C H 8 44
+C H 25 45
+C N 34 45
+C H 23 46
+C D 30 47 AJAX
+C Q 32 47
+C A 37 47
+C H 16 48
+C O 24 48
+C Z 32 51
+C A 35 51
+C Q 24 52 SDMA
+C A 37 52
+C Z 32 54
+C D 14 55
+C D 17 55
+C O 30 55
+C D 34 55
+C V 38 55
+C O 20 57
+C Z 32 57
+C V 36 57
+C X 23 58
+C Z 26 58
+C O 29 58
+C H 20 59
+C H 16 60
+C P 21 60 DSP56001
+C H 25 60
+C Z 32 60
+C M 13 61
+C M 15 61
+C M 17 61
+C Z 27 61
+C O 29 61
+C N 35 62
+C A 32 63
+C H 21 64
+C Z 25 64
+C Q 27 64
+C P 36 64
+C O 13 65
+C H 15 66
+C O 23 67
+C N 34 68
+END

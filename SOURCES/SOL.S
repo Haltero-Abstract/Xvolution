@@ -2,8 +2,9 @@
 ; SOL.S - SCROLLING GROUND WITHOUT REDRAWING IT (hardware scroll)
 ;   (included by SHOTEMUP.S ; settings in PARAMS.S)
 ;
-; 3 tall buffers of RING + 240 lines : G (clean ground, never shown) and
-; the 2 screens D0 / D1. World line w is kept at line (w mod RING) and, if
+; 4 tall buffers of RING + 240 lines : G (clean ground, never shown) and
+; the 3 screens D0 / D1 / D2 (triple buffering : one shown, one waiting
+; for its VBL, one being drawn : the 030 never waits for the VBL). World line w is kept at line (w mod RING) and, if
 ; that is < 240, also at + RING : the screen shown starts at line
 ; (gpos mod RING) ; G also holds the GM lines above the screen, where the
 ; components are baked (COMPOS.S) before they come into view,
@@ -18,7 +19,7 @@ GM              equ     256                     ; lines prepared above the scree
 RING            equ     SCR_H+GM                ; world line w -> line (w mod RING)
 TALL_H          equ     RING+SCR_H              ;  (+ RING when < 240 : copy)
 TALLSZ          equ     TALL_H*LINEB
-MAXDR           equ     200                     ; rectangles per screen
+MAXDR           equ     300                     ; rectangles per screen
                 rsreset
 BF_ADR          rs.l    1                       ; top of the tall buffer
 BF_LAST         rs.l    1                       ; gpos when last drawn
@@ -26,6 +27,9 @@ BF_N            rs.w    1                       ; rectangles noted
 BF_FULL         rs.w    1                       ; list full : whole copy
 BF_BL           rs.w    1                       ; top band : its line (-1 none)
 BF_BX           rs.w    1                       ;  and column (camx)
+BF_HL           rs.w    1                       ; top band as drawn : line (-1 : to draw),
+BF_HX           rs.w    1                       ;  column,
+BF_HS           rs.l    1                       ;  what it shows (draw_hud : the same : kept)
 BF_R            rs.b    MAXDR*8                 ; line.w lines.w off.w longs.w
 BF_SZ           rs.b    0
 
@@ -41,6 +45,8 @@ gnd_init:
                 move.l  d0,bufd0+BF_ADR
                 add.l   #TALLSZ,d0
                 move.l  d0,bufd1+BF_ADR
+                add.l   #TALLSZ,d0
+                move.l  d0,bufd2+BF_ADR
                 bsr     gnd_full
                 movem.l (sp)+,d0-d2/a0-a2
                 rts
@@ -63,25 +69,55 @@ gnd_full:
                 bsr     gnd_copyall
                 lea     bufd1,a2
                 bsr     gnd_copyall
+                lea     bufd2,a2
+                bsr     gnd_copyall
                 movem.l (sp)+,d0-d2/a0-a2
                 rts
 
-; gnd_copyall : a2 = screen : whole G copied, list emptied
+; gnd_copyall : a2 = screen : G copied for the picture of gpos (its 240
+;   lines and their copies : the lines above come with the scroll), list
+;   emptied
 gnd_copyall:
-                movem.l d0-d5/d7/a0-a1/a3-a4,-(sp)
-                move.l  gbuf,a1
-                move.l  BF_ADR(a2),a0
-                move.w  #TALL_H*LINEB/160-1,d7
-.l:             rept    5
-                movem.l (a1)+,d0-d5/a3-a4
-                movem.l d0-d5/a3-a4,(a0)
-                lea     32(a0),a0
-                endr
-                dbra    d7,.l
-                move.l  gpos,BF_LAST(a2)
+                movem.l d0-d3/d7/a0-a1,-(sp)
+                move.l  gpos,d0                 ; b0 = gpos mod RING
+                divu    #RING,d0
+                clr.w   d0
+                swap    d0
+                move.w  d0,d3
+                move.w  d3,d1                   ; [b0, b0+240)
+                move.w  #SCR_H,d2
+                bsr.s   .rng
+                cmp.w   #SCR_H,d3               ; lines < 240 there : copies + RING
+                bhs.s   .a1
+                move.w  d3,d1
+                add.w   #RING,d1
+                move.w  #SCR_H,d2
+                sub.w   d3,d2
+                bsr.s   .rng
+.a1:            move.w  d3,d2                   ; lines >= RING there : - RING
+                add.w   #SCR_H-RING,d2          ;  (b0+240-RING lines from 0)
+                ble.s   .a2
+                moveq   #0,d1
+                bsr.s   .rng
+.a2:            move.l  gpos,BF_LAST(a2)
                 clr.w   BF_N(a2)
                 clr.w   BF_FULL(a2)
-                movem.l (sp)+,d0-d5/d7/a0-a1/a3-a4
+                move.w  #-1,BF_HL(a2)
+                move.w  #-1,BF_BL(a2)
+                movem.l (sp)+,d0-d3/d7/a0-a1
+                rts
+.rng:           move.w  d1,d0                   ; d2 lines from line d1
+                mulu    #LINEB,d0
+                move.l  gbuf,a1
+                adda.l  d0,a1
+                move.l  BF_ADR(a2),a0
+                adda.l  d0,a0
+                move.w  d2,d7
+                subq.w  #1,d7
+.l:             bsr     copy_line
+                lea     LINEB(a0),a0
+                lea     LINEB(a1),a1
+                dbra    d7,.l
                 rts
 
 ; gnd_phys : d0.l = world line (>= -GM) -> d0 = offset of its line in a
@@ -206,8 +242,17 @@ ground_frame:
                 bsr     gnd_restore             ; under last time's objects
                 bra.s   .show
 .all:           bsr     gnd_copyall
-.show:          move.l  gpos,d0                 ; picture = line (gpos mod RING),
-                divu    #RING,d0                ;  column camx (horizontal scroll)
+.show:          bsr.s   set_pic
+                movem.l (sp)+,d0-d7/a0-a5
+                move.l  scr_show,a6
+                rts
+
+; set_pic : picture of cur_bf for gpos, camx : line (gpos mod RING), column
+;   camx (horizontal scroll) -> cur_b0, cur_camx, scr_show
+set_pic:
+                movem.l d0/a2/a6,-(sp)
+                move.l  gpos,d0
+                divu    #RING,d0
                 clr.w   d0
                 swap    d0
                 move.w  d0,cur_b0
@@ -220,109 +265,139 @@ ground_frame:
                 add.w   d0,d0
                 adda.w  d0,a6
                 move.l  a6,scr_show
-                movem.l (sp)+,d0-d7/a0-a5
-                move.l  scr_show,a6
+                movem.l (sp)+,d0/a2/a6
                 rts
 
 ; band_fix : a2 = screen : the top band drawn there last time is drawn again
-;   at the new place this time (black) : only the lines it leaves are put
-;   back (scroll : 1-2 lines) ; all of it if the camera moved sideways
+;   at the new place this time (black) : only what it leaves is put back :
+;   the lines it leaves (scroll : 1-3 lines) and, if the camera moved
+;   sideways, the columns it leaves on the lines it keeps
 band_fix:
-                movem.l d0-d4/a0,-(sp)
+                movem.l d0-d6/a0,-(sp)
                 move.w  BF_BL(a2),d3            ; old line
-                bmi.s   .x
+                bmi     .x
+                move.w  BF_BX(a2),d4            ; old column
                 move.l  gpos,d0                 ; new line : gpos mod RING
                 divu    #RING,d0
                 swap    d0                      ; d0.w = new line
-                move.w  #TOP_H,d2               ; lines to put back
-                move.w  d3,d1                   ;  from the old line
-                move.w  BF_BX(a2),d4
-                cmp.w   camx,d4
-                bne.s   .all
-                move.w  d3,d2
-                sub.w   d0,d2                   ; old - new (up : >= 0)
-                bmi.s   .all0
-                cmp.w   #TOP_H,d2
-                bhi.s   .all0
-                move.w  d0,d1                   ; from new + TOP_H, old - new lines
+                move.w  d3,d5
+                sub.w   d0,d5                   ; k = old - new (up : >= 0)
+                bmi.s   .all
+                cmp.w   #TOP_H,d5
+                bhi.s   .all
+                move.w  camx,d6
+                sub.w   d4,d6                   ; dx = new - old column
+                cmp.w   #SCR_W,d6
+                bge.s   .all
+                cmp.w   #-SCR_W,d6
+                ble.s   .all
+                tst.w   d5                      ; --- the k lines it leaves
+                beq.s   .c
+                move.w  d0,d1
                 add.w   #TOP_H,d1
-                tst.w   d2
+                move.w  d5,d2
+                move.w  d4,d3
+                add.w   d3,d3
+                move.w  #SCR_W/2,d0
+                bsr.s   .add
+                move.w  BF_BL(a2),d3            ; (d3 : old line again)
+                move.l  gpos,d0
+                divu    #RING,d0
+                swap    d0
+.c:             tst.w   d6                      ; --- the columns it leaves
                 beq.s   .n
-                bra.s   .add
-.all0:          move.w  #TOP_H,d2
-.all:           move.w  d3,d1
-.add:           move.w  BF_N(a2),d0
+                move.w  #TOP_H,d2               ;  on the lines kept :
+                sub.w   d5,d2                   ;  old .. new+15 (16-k lines)
+                ble.s   .n
+                move.w  d3,d1
+                tst.w   d6
+                bmi.s   .lf
+                move.w  d4,d3                   ; right : old .. new-1 columns
+                add.w   d3,d3
+                move.w  d6,d0
+                bra.s   .cw
+.lf:            move.w  camx,d3                 ; left : new+320 .. old+319
+                add.w   #SCR_W,d3
+                add.w   d3,d3
+                move.w  d6,d0
+                neg.w   d0
+.cw:            addq.w  #2,d0                   ; longs (one more : alignment)
+                lsr.w   #1,d0
+                bsr.s   .add
+                bra.s   .n
+.all:           move.w  d3,d1                   ; whole old band
+                move.w  #TOP_H,d2
+                move.w  d4,d3
+                add.w   d3,d3
+                move.w  #SCR_W/2,d0
+                bsr.s   .add
+.n:             move.w  #-1,BF_BL(a2)
+.x:             movem.l (sp)+,d0-d6/a0
+                rts
+.add:           move.w  d0,-(sp)                ; rect : line d1, lines d2,
+                move.w  BF_N(a2),d0             ;  offset d3, longs (sp)
                 cmp.w   #MAXDR,d0
                 blo.s   .ok
                 move.w  #1,BF_FULL(a2)
-                bra.s   .n
+                move.w  (sp)+,d0
+                rts
 .ok:            addq.w  #1,BF_N(a2)
                 lsl.w   #3,d0
                 lea     BF_R(a2,d0.w),a0
-                move.w  d1,(a0)+                ; line
-                move.w  d2,(a0)+                ; lines
-                add.w   d4,d4
-                move.w  d4,(a0)+                ; offset (bytes) : old camx
-                move.w  #SCR_W/2,(a0)+          ; longs
-.n:             move.w  #-1,BF_BL(a2)
-.x:             movem.l (sp)+,d0-d4/a0
+                move.w  d1,(a0)+
+                move.w  d2,(a0)+
+                move.w  d3,(a0)+
+                move.w  (sp)+,(a0)+
                 rts
 
-; copy_line : one line of a buffer (LINEB bytes) a1 -> a0 (a0, a1 kept)
+; copy_line : one line of a buffer a1 -> a0 (a0, a1 kept) : the width of
+;   the map only (map_cols tiles of 40 bytes : one movem of 10 registers
+;   each ; the columns past the map are never shown)
 copy_line:
-                movem.l d0-d5/d7/a0-a1/a3-a4,-(sp)
-                moveq   #LINEB/160-1,d7
-.l:             rept    5
-                movem.l (a1)+,d0-d5/a3-a4
-                movem.l d0-d5/a3-a4,(a0)
-                lea     32(a0),a0
-                endr
-                dbra    d7,.l
-                movem.l (sp)+,d0-d5/d7/a0-a1/a3-a4
+                movem.l d0-d7/a0-a1/a3-a5,-(sp)
+                move.w  map_cols,d0
+                subq.w  #1,d0
+.l:             movem.l (a1)+,d1-d7/a3-a5
+                movem.l d1-d7/a3-a5,(a0)
+                lea     40(a0),a0
+                dbra    d0,.l
+                movem.l (sp)+,d0-d7/a0-a1/a3-a5
                 rts
 
 ; gnd_restore : a2 = screen : ground copied back from G under its rectangles
-;   (28 bytes at a time by movem, then the rest by longs)
+;   (each line : a jump into SCR_W/2 move.l, as many as the rectangle needs)
 gnd_restore:
                 movem.l d0-d7/a0-a6,-(sp)
                 move.w  BF_N(a2),d7
                 beq     .x
                 subq.w  #1,d7
                 lea     BF_R(a2),a4
+                move.l  gbuf,d4
+                move.l  BF_ADR(a2),d5
+                lea     .end(pc),a5
 .r:             movem.w (a4)+,d0-d3             ; line, lines, offset, longs
                 mulu    #LINEB,d0
                 add.l   d2,d0
-                move.l  gbuf,a1
+                move.l  d4,a1
                 adda.l  d0,a1
-                move.l  BF_ADR(a2),a0
+                move.l  d5,a0
                 adda.l  d0,a0
-                move.w  d1,d6
-                subq.w  #1,d6                   ; lines - 1
-                moveq   #0,d0
-                move.w  d3,d0
-                divu    #7,d0                   ; d0 = blocks of 7 longs
-                move.l  d0,d1
-                swap    d1                      ; d1 = longs left
-                move.l  a4,-(sp)
-.y:             movem.l a0-a1,-(sp)
-                move.w  d0,d2
-                beq.s   .b2
-                subq.w  #1,d2
-.b:             movem.l (a1)+,d3-d5/a3-a6
-                movem.l d3-d5/a3-a6,(a0)
-                lea     28(a0),a0
-                dbra    d2,.b
-.b2:            move.w  d1,d2
-                beq.s   .ny
-                subq.w  #1,d2
-.c:             move.l  (a1)+,(a0)+
-                dbra    d2,.c
-.ny:            movem.l (sp)+,a0-a1
-                lea     LINEB(a0),a0
-                lea     LINEB(a1),a1
-                dbra    d6,.y
-                move.l  (sp)+,a4
-                dbra    d7,.r
+                subq.w  #1,d1                   ; lines - 1
+                bmi     .n
+                add.w   d3,d3                   ; 2 bytes of code per long
+                move.l  a5,a3
+                suba.w  d3,a3                   ; where to jump
+                add.w   d3,d3                   ; bytes per line
+                move.w  #LINEB,d6
+                sub.w   d3,d6                   ; to the next line
+.y:             jmp     (a3)
+                rept    SCR_W/2
+                move.l  (a1)+,(a0)+
+                endr
+.end:           adda.w  d6,a0
+                adda.w  d6,a1
+                dbra    d1,.y
+.n:             dbra    d7,.r
                 clr.w   BF_N(a2)
 .x:             movem.l (sp)+,d0-d7/a0-a6
                 rts

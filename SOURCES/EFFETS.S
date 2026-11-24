@@ -80,6 +80,39 @@ blend_rect:
 .x:             movem.l (sp)+,d0-d7/a0-a1
                 rts
 
+; fill_small : d0,d1 - d2,d3 colour d4 (a few pixels) : in the screen,
+;   written directly ; else fillrect (clipped). Erased next time.
+fill_small:
+                movem.l d0-d6/a0-a1,-(sp)
+                tst.w   d0
+                bmi.s   .slow
+                cmp.w   #SCR_W-1,d2
+                bgt.s   .slow
+                cmp.w   clip_y0,d1
+                blt.s   .slow
+                cmp.w   clip_y1,d3
+                bgt.s   .slow
+                bsr     add_rect
+                sub.w   d1,d3                   ; lines - 1
+                sub.w   d0,d2                   ; pixels - 1
+                mulu    #LINEB,d1
+                lea     (a6,d1.l),a0
+                add.w   d0,d0
+                adda.w  d0,a0
+.y:             move.l  a0,a1
+                move.w  d2,d5
+.x:             move.w  d4,(a1)+
+                dbra    d5,.x
+                lea     LINEB(a0),a0
+                dbra    d3,.y
+                movem.l (sp)+,d0-d6/a0-a1
+                rts
+.slow:          bsr     obj_begin
+                bsr     fillrect
+                bsr     obj_end
+                movem.l (sp)+,d0-d6/a0-a1
+                rts
+
 ; w2s : world (ship plane) d0,d1 -> screen d0,d1
 w2s:
                 muls    #FOC,d0
@@ -243,15 +276,17 @@ fx_render:
                 add.w   d5,d3
                 sub.w   d5,d1
                 move.w  10(a0),d4
-                bsr     obj_begin
                 tst.w   14(a0)
-                beq.s   .f
+                bne.s   .fl
+                bsr     fill_small              ; debris : a small square
+                bra.s   .n
+.fl:            bsr     obj_begin
                 bsr     blend_rect              ; flash : halo + white core
                 addq.w  #3,d0
                 addq.w  #3,d1
                 subq.w  #3,d2
                 subq.w  #3,d3
-.f:             bsr     fillrect
+                bsr     fillrect
                 bsr     obj_end
 .n:             lea     16(a0),a0
                 dbra    d7,.l
@@ -259,8 +294,89 @@ fx_render:
                 rts
 
 ;---------------------------------------------------------------------
-; fx_shadow : shadow of the ship (model a0) on the board ; a6 = screen
+; fx_shadow : shadow of the ship (model a0) on the board ; a6 = screen :
+;   its runs made by sh_prerender, moved by the ship (all in the screen),
+;   else the boxes one by one (fx_shadow_box)
+SH_CX           equ     SH_DX*FOC/SH_Z+CX       ; (centre of the shadow : ship at 0,0)
+SH_CY           equ     SH_DY*FOC/SH_Z+CY
 fx_shadow:
+                tst.w   spr_done
+                beq     fx_shadow_box
+                movem.l d0-d7/a0-a3,-(sp)
+                move.w  form,d0
+                lsl.w   #4,d0
+                lea     sh_tab,a2
+                adda.w  d0,a2
+                move.l  12(a2),d0               ; its runs
+                beq     .x
+                move.l  d0,a0
+                move.w  px,d0                   ; top left : centre + ship / SH_Z
+                muls    #FOC,d0
+                divs    #SH_Z,d0
+                add.w   #SH_CX,d0
+                add.w   8(a2),d0
+                move.w  py,d1
+                muls    #FOC,d1
+                divs    #SH_Z,d1
+                add.w   #SH_CY,d1
+                add.w   10(a2),d1
+                move.w  4(a2),d4                ; w, h
+                move.w  6(a2),d5
+                tst.w   d0                      ; all in the screen ?
+                bmi    .slow
+                move.w  d0,d2
+                add.w   d4,d2
+                cmp.w   #SCR_W,d2
+                bgt    .slow
+                cmp.w   clip_y0,d1
+                blt    .slow
+                move.w  d1,d3
+                add.w   d5,d3
+                subq.w  #1,d3
+                cmp.w   clip_y1,d3
+                bgt    .slow
+                subq.w  #1,d2                   ; erased next time
+                bsr     add_rect
+                mulu    #LINEB,d1
+                lea     (a6,d1.l),a1
+                add.w   d0,d0
+                adda.w  d0,a1
+                move.l  #$7BEF7BEF,d4
+                subq.w  #1,d5
+.ry:            move.w  (a0)+,d2                ; runs of the line
+                subq.w  #1,d2
+                bmi.s   .rn
+.rr:            move.w  (a0)+,d3
+                lea     (a1,d3.w),a3
+                move.w  (a0)+,d3                ; pixels - 1
+                move.w  d3,d6
+                addq.w  #1,d6
+                add.w   d6,d6
+                adda.w  d6,a0                   ; (its pixels : not used)
+                addq.w  #1,d3
+                lsr.w   #1,d3                   ; pairs (carry : one more)
+                bcc.s   .ev
+                move.w  (a3),d0                 ; the odd one
+                lsr.w   #1,d0
+                and.w   d4,d0
+                move.w  d0,(a3)+
+.ev:            subq.w  #1,d3
+                bmi.s   .rd
+.rp:            move.l  (a3),d0                 ; 2 pixels : half (darker)
+                lsr.l   #1,d0
+                and.l   d4,d0
+                move.l  d0,(a3)+
+                dbra    d3,.rp
+.rd:            dbra    d2,.rr
+.rn:            lea     LINEB(a1),a1
+                dbra    d5,.ry
+.x:             movem.l (sp)+,d0-d7/a0-a3
+                rts
+.slow:          movem.l (sp)+,d0-d7/a0-a3
+                ; (falls into fx_shadow_box : a0 = model)
+
+; fx_shadow_box : the shadow box by box (blend_rect)
+fx_shadow_box:
                 movem.l d0-d7/a0,-(sp)
                 bsr     obj_begin
 .l:             move.w  (a0)+,d0
@@ -524,6 +640,8 @@ pulse_render:
                 blt     .n
                 cmp.l   #SCR_H+400,d1
                 bgt     .n
+                bsr     pulse_fast              ; all in the screen : direct
+                beq     .n
                 bsr     obj_begin
                 tst.w   (a1)
                 bne.s   .h
@@ -561,6 +679,110 @@ pulse_render:
                 rts
 
 ;---------------------------------------------------------------------
+; pulse_fast : pulse a0 on run a1 at d0 (x of its column), d1 (y of its
+;   row) : all in the screen -> drawn directly (tail mixed 50 %, white
+;   head), Z set ; else Z clear (fillrect / blend_rect)
+pulse_fast:
+                movem.l d0-d7/a2,-(sp)
+                tst.w   (a1)
+                bne     .h
+                addq.w  #8,d0                   ; vertical : x .. x+3,
+                add.w   2(a0),d1                ;  tail y-20 .. y-1, head .. y+3
+                move.w  d0,d2
+                addq.w  #3,d2
+                move.w  d1,d3
+                addq.w  #3,d3
+                sub.w   #PULSE_LEN,d1
+                bsr     .vis                    ; (not seen at all : nothing)
+                bne     .skip
+                bsr     .in
+                bne     .no
+                bsr     add_rect
+                bsr     .adr
+                moveq   #PULSE_LEN-1,d7
+.vt:            move.l  (a2),d0                 ; 4 pixels : 2 longs
+                lsr.l   #1,d0
+                and.l   d5,d0
+                add.l   d6,d0
+                move.l  d0,(a2)
+                move.l  4(a2),d0
+                lsr.l   #1,d0
+                and.l   d5,d0
+                add.l   d6,d0
+                move.l  d0,4(a2)
+                lea     LINEB(a2),a2
+                dbra    d7,.vt
+                moveq   #3,d7
+.vh:            move.l  d4,(a2)
+                move.l  d4,4(a2)
+                lea     LINEB(a2),a2
+                dbra    d7,.vh
+                bra     .ok
+.h:             add.w   2(a0),d0                ; horizontal : y+8 .. y+11,
+                addq.w  #8,d1                   ;  tail x-20 .. x-1, head .. x+3
+                move.w  d0,d2
+                addq.w  #3,d2
+                sub.w   #PULSE_LEN,d0
+                move.w  d1,d3
+                addq.w  #3,d3
+                bsr     .vis
+                bne     .skip
+                bsr     .in
+                bne.s   .no
+                bsr     add_rect
+                bsr     .adr
+                moveq   #3,d7
+.hl:            move.l  a2,a1
+                moveq   #PULSE_LEN/2-1,d2
+.ht:            move.l  (a1),d0
+                lsr.l   #1,d0
+                and.l   d5,d0
+                add.l   d6,d0
+                move.l  d0,(a1)+
+                dbra    d2,.ht
+                move.l  d4,(a1)+                ; head
+                move.l  d4,(a1)
+                lea     LINEB(a2),a2
+                dbra    d7,.hl
+.skip:
+.ok:            movem.l (sp)+,d0-d7/a2
+                moveq   #0,d0                   ; Z set : done (d0 not kept)
+                rts
+.no:            movem.l (sp)+,d0-d7/a2
+                rts
+.in:            tst.w   d0                      ; d0..d3 in the screen ? (Z set)
+                bmi.s   .out
+                cmp.w   #SCR_W-1,d2
+                bgt.s   .out
+                cmp.w   clip_y0,d1
+                blt.s   .out
+                cmp.w   clip_y1,d3
+                bgt.s   .out
+                moveq   #0,d4
+                rts
+.out:           moveq   #1,d4
+                rts
+.vis:           tst.w   d2                      ; d0..d3 out of the screen ?
+                bmi.s   .out                    ;  (Z clear : out)
+                cmp.w   #SCR_W-1,d0
+                bgt.s   .out
+                cmp.w   clip_y0,d3
+                blt.s   .out
+                cmp.w   clip_y1,d1
+                bgt.s   .out
+                moveq   #0,d4
+                rts
+.adr:           move.w  d1,d7                   ; a2 = d0, d1 ; d4 head x2,
+                mulu    #LINEB,d7               ;  d5 mask, d6 tail colour / 2 x2
+                lea     (a6,d7.l),a2
+                move.w  d0,d7
+                add.w   d7,d7
+                adda.w  d7,a2
+                move.l  #PULSE_COL<<16+PULSE_COL,d4
+                move.l  #$7BEF7BEF,d5
+                move.l  #((PULSE_TAIL>>1)&$7BEF)*$10001,d6
+                rts
+
 ; fx_fixed : the recapped chips : green halo around them + blinking LED
 fx_fixed:
                 movem.l d0-d7/a0-a2,-(sp)
@@ -597,32 +819,31 @@ fx_fixed:
                 move.b  (a0,d5.w),d3
                 mulu    #TILE_PX,d3
                 add.w   d1,d3
-                bsr     obj_begin
-                subq.w  #3,d0                   ; halo : 4 bands outside
-                subq.w  #3,d1
-                addq.w  #2,d2
+                subq.w  #3,d0                   ; halo : 4 bands outside (each
+                subq.w  #3,d1                   ;  erased on its own : not the
+                addq.w  #2,d2                   ;  chip inside, it is in G)
                 addq.w  #2,d3
                 movem.w d0-d3,-(sp)
                 move.w  #FIX_COL,d4
                 move.w  d1,d3                   ;  top
                 addq.w  #2,d3
-                bsr     blend_rect
+                bsr     .band
                 movem.w (sp),d0-d3
                 move.w  d3,d1                   ;  bottom
                 subq.w  #2,d1
-                bsr     blend_rect
+                bsr     .band
                 movem.w (sp),d0-d3
                 addq.w  #3,d1
                 subq.w  #3,d3
                 move.w  d0,d2                   ;  left
                 addq.w  #2,d2
-                bsr     blend_rect
+                bsr     .band
                 movem.w (sp),d0-d3
                 addq.w  #3,d1
                 subq.w  #3,d3
                 move.w  d2,d0                   ;  right
                 subq.w  #2,d0
-                bsr     blend_rect
+                bsr     .band
                 movem.w (sp)+,d0-d3
                 move.w  d2,d0                   ; LED : top right corner
                 sub.w   #9,d0
@@ -634,13 +855,17 @@ fx_fixed:
                 btst    #3,fx_clock+1
                 beq.s   .led
                 move.w  #FIX_DIM,d4
-.led:           bsr     fillrect
+.led:           bsr     obj_begin
+                bsr     fillrect
                 bsr     obj_end
 .n:             addq.l  #2,a1
                 addq.l  #1,a2
                 dbra    d7,.b
 .x:             movem.l (sp)+,d0-d7/a0-a2
                 rts
+.band:          bsr     obj_begin
+                bsr     blend_rect
+                bra     obj_end
 
 ;---------------------------------------------------------------------
                 section data
@@ -714,13 +939,16 @@ ship_prerender:
                 lea     LINEB(a0),a0
                 dbra    d4,.k1
                 movem.w (sp),d0-d3
-                lea     forms,a0                ; the model, drawn there
-                move.w  d7,d4
+                move.w  d7,d4                   ; the ship : 3D picture of this
+                mulu    #SPR_NX*SPR_NY,d4       ;  form and place (SHIPGFX.S,
+                move.w  d6,d0                   ;  outils\SHIPGEN.PY)
+                mulu    #SPR_NX,d0
+                add.w   d0,d4
+                add.w   d5,d4
                 lsl.w   #2,d4
+                lea     ship_imgs,a0
                 move.l  (a0,d4.w),a0
-                move.w  d0,d6
-                move.w  d1,d7
-                bsr     draw_model
+                bsr     ship_img
                 movem.w (sp)+,d0-d3
                 ; --- bounds of the drawn pixels (d2,d3 = centre)
                 move.w  d3,d4
@@ -762,6 +990,7 @@ ship_prerender:
                 clr.l   (a4)+
                 clr.l   (a4)+
                 clr.l   (a4)+
+                clr.l   (a4)+
                 bra.s   .nx
 .ok:            move.l  spr_free,a2             ; entry : ptr w h offx offy
                 move.l  a2,(a4)+
@@ -783,15 +1012,20 @@ ship_prerender:
                 adda.l  d0,a0
                 add.w   d4,d4
                 adda.w  d4,a0
+                move.w  d6,d0                   ; (w, h for rle_build)
+                move.w  d7,d1
                 subq.w  #1,d7
 .cy:            move.l  a0,a1
-                move.w  d6,d0
-                subq.w  #1,d0
+                move.w  d6,d2
+                subq.w  #1,d2
 .cx:            move.w  (a1)+,(a2)+
-                dbra    d0,.cx
+                dbra    d2,.cx
                 lea     LINEB(a0),a0
                 dbra    d7,.cy
                 move.l  a2,spr_free
+                move.l  -12(a4),a0              ; its pixels -> runs
+                bsr     rle_build
+                move.l  a0,(a4)+                ; entry : + runs
 .nx:            movem.l (sp)+,d5-d7
                 bsr     spr_tick                ; progress bar
                 addq.w  #1,d5
@@ -903,6 +1137,7 @@ en_prerender:
                 clr.l   (a4)+
                 clr.l   (a4)+
                 clr.l   (a4)+
+                clr.l   (a4)+
                 bra.s   .nx
 .ok:            move.l  spr_free,a2             ; entry : ptr w h offx offy
                 move.l  a2,(a4)+
@@ -924,15 +1159,20 @@ en_prerender:
                 adda.l  d0,a0
                 add.w   d4,d4
                 adda.w  d4,a0
+                move.w  d6,d0                   ; (w, h for rle_build)
+                move.w  d7,d1
                 subq.w  #1,d7
 .cy:            move.l  a0,a1
-                move.w  d6,d0
-                subq.w  #1,d0
+                move.w  d6,d2
+                subq.w  #1,d2
 .cx:            move.w  (a1)+,(a2)+
-                dbra    d0,.cx
+                dbra    d2,.cx
                 lea     LINEB(a0),a0
                 dbra    d7,.cy
                 move.l  a2,spr_free
+                move.l  -12(a4),a0              ; its pixels -> runs
+                bsr     rle_build
+                move.l  a0,(a4)+                ; entry : + runs
 .nx:            movem.l (sp)+,d5-d7
                 bsr     spr_tick                ; progress bar
                 addq.w  #1,d5
@@ -947,6 +1187,168 @@ en_prerender:
                 move.w  (sp)+,clip_y1
                 move.w  (sp)+,clip_y0
                 movem.l (sp)+,d0-d7/a0-a6
+                rts
+
+; sh_prerender : the shadow of each form (ship at 0,0, fx_shadow_box into
+;   tmpbuf, black on the key colour) -> runs (sh_tab : like spr_tab, offx
+;   offy from SH_CX, SH_CY)
+sh_prerender:
+                movem.l d0-d7/a0-a6,-(sp)
+                move.w  clip_y0,-(sp)
+                move.w  clip_y1,-(sp)
+                clr.w   clip_y0
+                move.w  #SCR_H-1,clip_y1
+                move.w  px,-(sp)
+                move.w  py,-(sp)
+                clr.w   px
+                clr.w   py
+                lea     sh_tab,a4
+                moveq   #0,d7                   ; form
+.f:             lea     tmpbuf,a6               ; 64 x 64 of key colour
+                lea     (SH_CY-SPR_HALF)*LINEB+(SH_CX-SPR_HALF)*2(a6),a0
+                moveq   #2*SPR_HALF-1,d4
+.k1:            move.l  a0,a1
+                moveq   #2*SPR_HALF-1,d0
+.k2:            move.w  #BK_KEY,(a1)+
+                dbra    d0,.k2
+                lea     LINEB(a0),a0
+                dbra    d4,.k1
+                lea     ship_imgs,a0            ; the ship's picture (middle
+                move.w  d7,d4                   ;  place), black
+                mulu    #SPR_NX*SPR_NY,d4
+                add.w   #SPR_NX+SPR_NX/2,d4
+                lsl.w   #2,d4
+                move.l  (a0,d4.w),a0
+                move.w  #SH_CX+SH_DX*FOC/SH_Z,d2
+                move.w  #SH_CY+SH_DY*FOC/SH_Z,d3
+                bsr     ship_mask
+.bd:            move.w  #SH_CX,d2               ; crop + runs (centre SH_CX, SH_CY)
+                move.w  #SH_CY,d3
+                bsr     spr_crop
+                lea     16(a4),a4
+                addq.w  #1,d7
+                cmp.w   #3,d7
+                blt     .f
+                move.w  (sp)+,py
+                move.w  (sp)+,px
+                move.w  (sp)+,clip_y1
+                move.w  (sp)+,clip_y0
+                movem.l (sp)+,d0-d7/a0-a6
+                rts
+
+; bon_prerender : the bonus pod (mdl_bonus) drawn once, at the centre
+;   (small : the same picture everywhere) -> bon_tab
+bon_prerender:
+                movem.l d0-d7/a0-a6,-(sp)
+                move.w  clip_y0,-(sp)
+                move.w  clip_y1,-(sp)
+                clr.w   clip_y0
+                move.w  #SCR_H-1,clip_y1
+                lea     tmpbuf,a6
+                lea     (CY-SPR_HALF)*LINEB+(CX-SPR_HALF)*2(a6),a0
+                moveq   #2*SPR_HALF-1,d4
+.k1:            move.l  a0,a1
+                moveq   #2*SPR_HALF-1,d0
+.k2:            move.w  #BK_KEY,(a1)+
+                dbra    d0,.k2
+                lea     LINEB(a0),a0
+                dbra    d4,.k1
+                move.w  #SHIP_Z,mdl_z
+                lea     mdl_bonus,a0
+                moveq   #0,d6
+                moveq   #0,d7
+                bsr     draw_model
+                move.w  #CX,d2
+                move.w  #CY,d3
+                lea     bon_tab,a4
+                bsr     spr_crop
+                move.w  (sp)+,clip_y1
+                move.w  (sp)+,clip_y0
+                movem.l (sp)+,d0-d7/a0-a6
+                rts
+
+; spr_crop : the 64 x 64 of tmpbuf around d2, d3 (screen) : what is not the
+;   key colour -> entry a4 (ptr w h offx offy runs : 16 bytes, cleared if
+;   nothing), pixels and runs at spr_free
+spr_crop:
+                movem.l d0-d7/a0-a4,-(sp)
+                lea     tmpbuf,a6
+                move.w  d3,d4
+                sub.w   #SPR_HALF,d4
+                mulu    #LINEB,d4
+                lea     (a6,d4.l),a0
+                move.w  d2,d4
+                sub.w   #SPR_HALF,d4
+                add.w   d4,d4
+                adda.w  d4,a0                   ; a0 = top left of the 64 x 64
+                move.w  #999,d4                 ; x0 y0 x1 y1 (in the 64 x 64)
+                move.w  #999,d5
+                moveq   #-1,d6
+                moveq   #-1,d7
+                moveq   #0,d1
+.by:            move.l  a0,a1
+                moveq   #0,d0
+.bx:            cmp.w   #BK_KEY,(a1)+
+                beq.s   .bn
+                cmp.w   d4,d0
+                bge.s   .b1
+                move.w  d0,d4
+.b1:            cmp.w   d6,d0
+                ble.s   .b2
+                move.w  d0,d6
+.b2:            cmp.w   d5,d1
+                bge.s   .b3
+                move.w  d1,d5
+.b3:            move.w  d1,d7
+.bn:            addq.w  #1,d0
+                cmp.w   #2*SPR_HALF,d0
+                blt.s   .bx
+                lea     LINEB(a0),a0
+                addq.w  #1,d1
+                cmp.w   #2*SPR_HALF,d1
+                blt.s   .by
+                tst.w   d6
+                bpl.s   .ok
+                clr.l   (a4)+                   ; nothing
+                clr.l   (a4)+
+                clr.l   (a4)+
+                clr.l   (a4)+
+                bra.s   .x
+.ok:            move.l  spr_free,a2
+                move.l  a2,(a4)+
+                sub.w   d4,d6
+                addq.w  #1,d6                   ; w
+                sub.w   d5,d7
+                addq.w  #1,d7                   ; h
+                move.w  d6,(a4)+
+                move.w  d7,(a4)+
+                move.w  d4,d0
+                sub.w   #SPR_HALF,d0
+                move.w  d0,(a4)+                ; offx
+                move.w  d5,d0
+                sub.w   #SPR_HALF,d0
+                move.w  d0,(a4)+                ; offy
+                lea     -2*SPR_HALF*LINEB(a0),a0
+                move.w  d5,d0
+                mulu    #LINEB,d0
+                adda.l  d0,a0
+                add.w   d4,d4
+                adda.w  d4,a0
+                move.w  d6,d0
+                move.w  d7,d1
+                subq.w  #1,d7
+.cy:            move.l  a0,a1
+                move.w  d6,d2
+                subq.w  #1,d2
+.cx:            move.w  (a1)+,(a2)+
+                dbra    d2,.cx
+                lea     LINEB(a0),a0
+                dbra    d7,.cy
+                move.l  a2,spr_free
+                move.l  -12(a4),a0
+                bsr     rle_build
+                move.l  a0,(a4)+
+.x:             movem.l (sp)+,d0-d7/a0-a4
                 rts
 
 ; en_sprite : enemy d4 = type (0 joystick, 1 cartridge, 2 disk) at world
@@ -975,9 +1377,20 @@ en_sprite:
                 add.w   d1,d4
                 mulu    #EN_NX,d4
                 add.w   d0,d4
-                mulu    #12,d4
+                lsl.w   #4,d4                   ; (16 bytes per entry)
                 lea     en_tab,a2
                 adda.l  d4,a2
+                move.w  d6,d0                   ; its shadow : on the board,
+                add.w   #SH_DX,d0               ;  offset like the ship's
+                muls    #FOC,d0
+                divs    #SH_Z,d0
+                add.w   #CX,d0
+                move.w  d7,d1
+                add.w   #SH_DY,d1
+                muls    #FOC,d1
+                divs    #SH_Z,d1
+                add.w   #CY,d1
+                bsr     sh_runs
                 move.w  d6,d0                   ; screen centre
                 muls    #FOC,d0
                 divs    #SHIP_Z,d0
@@ -990,72 +1403,293 @@ en_sprite:
                 movem.l (sp)+,d0-d7/a0-a2
                 rts
 
+; sh_runs : the sprite a2 (entry : runs at 12, w h at 4, offx offy at 8)
+;   as a shadow (pixels under it half as bright), centre d0, d1 ; nothing
+;   if not all inside the screen
+sh_runs:
+                movem.l d0-d7/a0-a3,-(sp)
+                move.l  12(a2),d2
+                beq     .x
+                move.l  d2,a0
+                add.w   8(a2),d0
+                add.w   10(a2),d1
+                move.w  4(a2),d4
+                move.w  6(a2),d5
+                tst.w   d0
+                bmi     .x
+                move.w  d0,d2
+                add.w   d4,d2
+                cmp.w   #SCR_W,d2
+                bgt     .x
+                cmp.w   clip_y0,d1
+                blt     .x
+                move.w  d1,d3
+                add.w   d5,d3
+                subq.w  #1,d3
+                cmp.w   clip_y1,d3
+                bgt     .x
+                subq.w  #1,d2                   ; erased next time
+                bsr     add_rect
+                mulu    #LINEB,d1
+                lea     (a6,d1.l),a1
+                add.w   d0,d0
+                adda.w  d0,a1
+                move.l  #$7BEF7BEF,d4
+                subq.w  #1,d5
+.ry:            move.w  (a0)+,d2
+                subq.w  #1,d2
+                bmi.s   .rn
+.rr:            move.w  (a0)+,d3
+                lea     (a1,d3.w),a3
+                move.w  (a0)+,d3
+                move.w  d3,d6
+                addq.w  #1,d6
+                add.w   d6,d6
+                adda.w  d6,a0
+                addq.w  #1,d3
+                lsr.w   #1,d3
+                bcc.s   .ev
+                move.w  (a3),d0
+                lsr.w   #1,d0
+                and.w   d4,d0
+                move.w  d0,(a3)+
+.ev:            subq.w  #1,d3
+                bmi.s   .rd
+.rp:            move.l  (a3),d0
+                lsr.l   #1,d0
+                and.l   d4,d0
+                move.l  d0,(a3)+
+                dbra    d3,.rp
+.rd:            dbra    d2,.rr
+.rn:            lea     LINEB(a1),a1
+                dbra    d5,.ry
+.x:             movem.l (sp)+,d0-d7/a0-a3
+                rts
+
 ; spr_prepare : sprites of the ship and the enemies, once (at the 1st
-;   level), with a progress bar on the black picture (like RICK3D)
+;   level) ; progress : a 3.5" floppy disk (the old cruiser of the game)
+;   appears on the black picture from the bottom to the top
 spr_prepare:
                 tst.w   spr_done
-                bne.s   .x
-                movem.l d0-d2/a0,-(sp)
+                bne     .x
+                movem.l d0-d7/a0-a2,-(sp)
                 clr.w   spr_cnt
-                lea     blackscr+(PB_Y-2)*SCR_W*2+(PB_X-2)*2,a0  ; frame (grey)
-                moveq   #PB_H+4-1,d1
-.f1:            move.w  #PB_W+4-1,d0
-                move.l  a0,-(sp)
-.f2:            move.w  #$8410,(a0)+
-                dbra    d0,.f2
-                move.l  (sp)+,a0
-                lea     SCR_W*2(a0),a0
-                dbra    d1,.f1
-                lea     blackscr+(PB_Y-1)*SCR_W*2+(PB_X-1)*2,a0  ; inside black
-                moveq   #PB_H+2-1,d1
-.f3:            move.w  #PB_W+2-1,d0
-                move.l  a0,-(sp)
-.f4:            clr.w   (a0)+
-                dbra    d0,.f4
-                move.l  (sp)+,a0
-                lea     SCR_W*2(a0),a0
-                dbra    d1,.f3
-                movem.l (sp)+,d0-d2/a0
+                clr.w   dk_rows
+                lea     dk_img,a0               ; the disk : boxes of the model,
+                lea     dk_box,a1               ;  front colours, x DK_S
+.b:             movem.w (a1)+,d0-d4             ; x0 y0 x1 y1 colour (-99 : end)
+                cmp.w   #-99,d0
+                beq.s   .bd
+                add.w   #13,d0                  ; units -13..13 -> pixels
+                add.w   #13,d1
+                add.w   #13,d2
+                add.w   #13,d3
+                mulu    #DK_S,d0
+                mulu    #DK_S,d1
+                mulu    #DK_S,d2
+                mulu    #DK_S,d3
+                sub.w   d0,d2                   ; width
+                subq.w  #1,d2
+                sub.w   d1,d3                   ; height
+                subq.w  #1,d3
+                mulu    #DK_W*2,d1
+                lea     (a0,d1.l),a2
+                add.w   d0,d0
+                adda.w  d0,a2
+.by:            move.w  d2,d5
+                move.l  a2,-(sp)
+.bx:            move.w  d4,(a2)+
+                dbra    d5,.bx
+                move.l  (sp)+,a2
+                lea     DK_W*2(a2),a2
+                dbra    d3,.by
+                bra.s   .b
+.bd:            lea     dk_txt,a0               ; text under the disk (x2)
+                move.w  #DK_TY,d1
+                move.w  #$FFFF,d2
+                moveq   #2,d3
+                bsr     bs_text
+                movem.l (sp)+,d0-d7/a0-a2
                 bsr     ship_prerender
                 bsr     en_prerender
+                bsr     sh_prerender
+                bsr     bon_prerender
                 move.w  #1,spr_done
-                movem.l d0-d1/a0,-(sp)          ; bar wiped (black again)
-                lea     blackscr+(PB_Y-2)*SCR_W*2,a0
-                move.w  #(PB_H+4)*SCR_W/2-1,d0
+                movem.l d0-d1/a0,-(sp)          ; disk wiped (black again)
+                lea     blackscr+DK_Y*SCR_W*2,a0
+                move.w  #(DK_TY+12-DK_Y)*SCR_W/2-1,d0
 .c:             clr.l   (a0)+
                 dbra    d0,.c
                 movem.l (sp)+,d0-d1/a0
 .x:             rts
 
-; spr_tick : one more sprite : the bar grows (PB_W pixels for PB_N sprites)
+; spr_tick : one more sprite : the disk rises (DK_W lines for PB_N sprites)
 spr_tick:
-                movem.l d0-d2/a0,-(sp)
+                movem.l d0-d3/a0-a1,-(sp)
                 addq.w  #1,spr_cnt
                 move.w  spr_cnt,d0
-                mulu    #PB_W,d0
+                mulu    #DK_W,d0
                 divu    #PB_N,d0
-                cmp.w   #PB_W,d0
+                cmp.w   #DK_W,d0
                 bls.s   .w
-                move.w  #PB_W,d0
-.w:             subq.w  #1,d0
-                bmi.s   .x
-                lea     blackscr+PB_Y*SCR_W*2+PB_X*2,a0
-                moveq   #PB_H-1,d1
-.l:             move.w  d0,d2
-                move.l  a0,-(sp)
-.p:             move.w  #$07E0,(a0)+            ; (green)
-                dbra    d2,.p
-                move.l  (sp)+,a0
-                lea     SCR_W*2(a0),a0
-                dbra    d1,.l
-.x:             movem.l (sp)+,d0-d2/a0
+                move.w  #DK_W,d0
+.w:             move.w  dk_rows,d1              ; new lines, from the bottom
+.l:             cmp.w   d0,d1
+                bhs.s   .x
+                addq.w  #1,d1
+                move.w  #DK_W,d2
+                sub.w   d1,d2                   ; line of the disk
+                move.w  d2,d3
+                mulu    #DK_W*2,d3
+                lea     dk_img,a0
+                adda.l  d3,a0
+                add.w   #DK_Y,d2
+                mulu    #SCR_W*2,d2
+                lea     blackscr+DK_X*2,a1
+                adda.l  d2,a1
+                moveq   #DK_W/2-1,d3
+.p:             move.l  (a0)+,(a1)+
+                dbra    d3,.p
+                bra.s   .l
+.x:             move.w  d1,dk_rows
+                movem.l (sp)+,d0-d3/a0-a1
                 rts
 
-PB_X            equ     60                      ; progress bar (on blackscr)
-PB_Y            equ     116
-PB_W            equ     200
-PB_H            equ     8
+; bs_text : string a0 centred on line d1 of blackscr (640-byte lines), TOS
+;   6x6 font (font6) with pixels of d3 x d3 (1..4), colour d2
+bs_text:
+                movem.l d0-d7/a0-a3,-(sp)
+                move.l  a0,a1                   ; width -> x
+                moveq   #0,d0
+.n:             tst.b   (a1)+
+                beq.s   .n1
+                addq.w  #1,d0
+                bra.s   .n
+.n1:            mulu    #6,d0
+                mulu    d3,d0
+                neg.w   d0
+                add.w   #SCR_W,d0
+                bpl.s   .n2
+                moveq   #0,d0
+.n2:            lsr.w   #1,d0
+                mulu    #SCR_W*2,d1
+                lea     blackscr,a3
+                adda.l  d1,a3
+                add.w   d0,d0
+                adda.w  d0,a3
+                move.w  d3,d7                   ; bytes of a font pixel
+                add.w   d7,d7
+                subq.w  #1,d3
+.ch:            moveq   #0,d0
+                move.b  (a0)+,d0
+                beq.s   .x
+                lsl.w   #3,d0
+                lea     font6,a1
+                adda.w  d0,a1                   ; its 6 rows
+                move.l  a3,a2
+                moveq   #5,d6
+.fl:            move.b  (a1)+,d5                ; bits 7..2
+                moveq   #5,d4
+                move.l  a2,-(sp)
+.px:            add.b   d5,d5
+                bcc.s   .p0
+                move.l  a2,-(sp)                ; d3 x d3 square
+                move.w  d3,d1
+.sy:            move.w  d3,d0
+                move.l  a2,-(sp)
+.sx:            move.w  d2,(a2)+
+                dbra    d0,.sx
+                move.l  (sp)+,a2
+                lea     SCR_W*2(a2),a2
+                dbra    d1,.sy
+                move.l  (sp)+,a2
+.p0:            adda.w  d7,a2
+                dbra    d4,.px
+                move.l  (sp)+,a2
+                move.w  d3,d0                   ; next font row : d3 lines
+                addq.w  #1,d0
+                mulu    #SCR_W*2,d0
+                adda.l  d0,a2
+                dbra    d6,.fl
+                move.w  d7,d0                   ; next character : 6 pixels
+                mulu    #6,d0
+                adda.w  d0,a3
+                bra.s   .ch
+.x:             movem.l (sp)+,d0-d7/a0-a3
+                rts
+
+DK_S            equ     4                       ; pixels per unit of the model
+DK_W            equ     26*DK_S                 ; size of the disk (square)
+DK_X            equ     (SCR_W-DK_W)/2          ; place on blackscr
+DK_Y            equ     (SCR_H-DK_W)/2
+DK_TY           equ     DK_Y+DK_W+12            ; line of the text
 PB_N            equ     3*(SPR_NX*SPR_NY+EN_NX*EN_NY)
+
+                section data
+; the 3.5" disk (former cruiser mdl_en1) : x0 y0 x1 y1 (units), colour
+dk_box:         dc.w    -13,-13,13,13,$2A7F     ; disk (blue)
+                dc.w    -6,-13,6,-3,$C618       ; metal shutter
+                dc.w    -2,-11,1,-5,$2945       ;  (its window)
+                dc.w    -10,1,10,12,$FFFF       ; label
+                dc.w    -10,4,10,5,$F800        ;  (a red line on it)
+                dc.w    -99,0,0,0,0
+dk_txt:         dc.b    'PLEASE WAIT, LOADING',0
+                even
+                section bss
+dk_img:         ds.w    DK_W*DK_W
+dk_rows:        ds.w    1                       ; lines of the disk shown
+                section text
+
+; ship_mask : as ship_img, but its pixels in black (the shadow)
+ship_mask:
+                movem.l d0-d5/a0-a2,-(sp)
+                movem.w (a0)+,d4-d5             ; w h
+                add.w   (a0)+,d2                ; + offx offy
+                add.w   (a0)+,d3
+                mulu    #LINEB,d3
+                lea     (a6,d3.l),a1
+                add.w   d2,d2
+                adda.w  d2,a1
+                move.w  d5,d1
+                subq.w  #1,d1
+.y:             move.l  a1,a2
+                move.w  d4,d0
+                subq.w  #1,d0
+.x:             cmp.w   #BK_KEY,(a0)+
+                beq.s   .n
+                clr.w   (a2)
+.n:             addq.l  #2,a2
+                dbra    d0,.x
+                lea     LINEB(a1),a1
+                dbra    d1,.y
+                movem.l (sp)+,d0-d5/a0-a2
+                rts
+
+; ship_img : picture a0 (w, h, offx, offy, pixels) at the place centre d2,d3 of a6
+ship_img:
+                movem.l d0-d5/a0-a2,-(sp)
+                movem.w (a0)+,d4-d5             ; w h
+                add.w   (a0)+,d2                ; + offx offy
+                add.w   (a0)+,d3
+                mulu    #LINEB,d3
+                lea     (a6,d3.l),a1
+                add.w   d2,d2
+                adda.w  d2,a1
+                move.w  d5,d1
+                subq.w  #1,d1
+.y:             move.l  a1,a2
+                move.w  d4,d0
+                subq.w  #1,d0
+.x:             move.w  (a0)+,(a2)+
+                dbra    d0,.x
+                lea     LINEB(a1),a1
+                dbra    d1,.y
+                movem.l (sp)+,d0-d5/a0-a2
+                rts
+
+                section data
+                include 'SHIPGFX.S'
+                section text
 
 ; ship_sprite : the ship (form, px, py) ; a6 = screen
 ship_sprite:
@@ -1082,7 +1716,7 @@ ship_sprite:
                 add.w   d1,d2
                 mulu    #SPR_NX,d2
                 add.w   d0,d2
-                mulu    #12,d2
+                lsl.w   #4,d2                   ; (16 bytes per entry)
                 lea     spr_tab,a2
                 adda.w  d2,a2
                 move.w  px,d0                   ; screen centre of the ship
@@ -1097,10 +1731,50 @@ ship_sprite:
 .x:             movem.l (sp)+,d0-d7/a0-a2
                 rts
 
-; spr_blit : sprite entry a2 (ptr w h offx offy) at screen centre d0, d1
-;   (key colour skipped, clipped, erased next time : add_rect)
+; rle_build : pixels a0 (w d0 x h d1, key = transparent) -> runs at spr_free,
+;   a0 = them. Each line : number of runs.w, then for each run : offset
+;   (bytes).w, pixels - 1.w, the pixels
+rle_build:
+                movem.l d0-d6/a1-a3,-(sp)
+                move.l  spr_free,a2
+                move.l  a2,-(sp)
+                move.w  d1,d6
+                subq.w  #1,d6
+.y:             move.l  a2,a3                   ; (number of runs : here)
+                clr.w   (a2)+
+                moveq   #0,d2                   ; x
+.x:             cmp.w   d0,d2
+                bge.s   .ny
+                cmp.w   #BK_KEY,(a0)
+                bne.s   .run
+                addq.l  #2,a0
+                addq.w  #1,d2
+                bra.s   .x
+.run:           addq.w  #1,(a3)
+                move.w  d2,d3
+                add.w   d3,d3
+                move.w  d3,(a2)+                ; offset
+                move.l  a2,a1                   ; (length : here)
+                move.w  #-1,(a2)+
+.rp:            move.w  (a0)+,(a2)+
+                addq.w  #1,(a1)
+                addq.w  #1,d2
+                cmp.w   d0,d2
+                bge.s   .ny
+                cmp.w   #BK_KEY,(a0)
+                bne.s   .rp
+                bra.s   .x
+.ny:            dbra    d6,.y
+                move.l  a2,spr_free
+                move.l  (sp)+,a0
+                movem.l (sp)+,d0-d6/a1-a3
+                rts
+
+; spr_blit : sprite entry a2 (ptr w h offx offy runs) at screen centre d0, d1
+;   (key colour skipped, clipped, erased next time : add_rect) ; all in the
+;   screen : copied by runs (fast)
 spr_blit:
-                movem.l d0-d7/a0-a2,-(sp)
+                movem.l d0-d7/a0-a3,-(sp)
                 move.l  (a2)+,a0
                 move.l  a0,d2
                 beq     .x
@@ -1108,6 +1782,47 @@ spr_blit:
                 move.w  (a2)+,d5                ; h
                 add.w   (a2)+,d0                ; x0
                 add.w   (a2)+,d1                ; y0
+                tst.w   d0                      ; --- inside ? runs
+                bmi.s   .cl
+                move.w  d0,d2
+                add.w   d4,d2
+                cmp.w   #SCR_W,d2
+                bgt.s   .cl
+                cmp.w   clip_y0,d1
+                blt.s   .cl
+                move.w  d1,d2
+                add.w   d5,d2
+                subq.w  #1,d2
+                cmp.w   clip_y1,d2
+                bgt.s   .cl
+                move.l  (a2),a0                 ; runs
+                movem.w d0-d1/d4-d5,-(sp)       ; erased next time
+                move.w  d0,d2
+                add.w   d4,d2
+                subq.w  #1,d2
+                move.w  d1,d3
+                add.w   d5,d3
+                subq.w  #1,d3
+                bsr     add_rect
+                movem.w (sp)+,d0-d1/d4-d5
+                mulu    #LINEB,d1
+                lea     (a6,d1.l),a1
+                add.w   d0,d0
+                adda.w  d0,a1
+                subq.w  #1,d5
+.ry:            move.w  (a0)+,d2                ; runs of the line
+                subq.w  #1,d2
+                bmi.s   .rn
+.rr:            move.w  (a0)+,d3
+                lea     (a1,d3.w),a3
+                move.w  (a0)+,d3
+.rc:            move.w  (a0)+,(a3)+
+                dbra    d3,.rc
+                dbra    d2,.rr
+.rn:            lea     LINEB(a1),a1
+                dbra    d5,.ry
+                bra     .x
+.cl:
                 move.w  d4,d6                   ; d6 = source line (bytes)
                 add.w   d6,d6
                 tst.w   d0                      ; --- clipping
@@ -1168,7 +1883,7 @@ spr_blit:
                 move.l  d3,a1
                 lea     LINEB(a1),a1
                 dbra    d5,.ly
-.x:             movem.l (sp)+,d0-d7/a0-a2
+.x:             movem.l (sp)+,d0-d7/a0-a3
                 rts
 
                 section data
@@ -1184,8 +1899,10 @@ en_mdls:        dc.l    mdl_en0,mdl_en2,mdl_en1
 spr_free:       ds.l    1
 spr_cnt:        ds.w    1
 spr_done:       ds.w    1
-spr_tab:        ds.w    3*SPR_NX*SPR_NY*6       ; ptr.l w h offx offy
-en_tab:         ds.w    3*EN_NX*EN_NY*6
-spr_pool:       ds.w    3*(SPR_NX*SPR_NY+EN_NX*EN_NY)*2*SPR_HALF*2*SPR_HALF
+spr_tab:        ds.w    3*SPR_NX*SPR_NY*8       ; ptr.l w h offx offy runs.l
+en_tab:         ds.w    3*EN_NX*EN_NY*8
+sh_tab:         ds.w    3*8                     ; shadows (sh_prerender)
+bon_tab:        ds.w    8                       ; bonus pod (bon_prerender)
+spr_pool:       ds.w    3*(SPR_NX*SPR_NY+EN_NX*EN_NY+2)*2*SPR_HALF*2*SPR_HALF*2
                 even
                 section text

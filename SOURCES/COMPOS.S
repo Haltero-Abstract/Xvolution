@@ -160,19 +160,27 @@ bake_one:
                 adda.l  d6,a5
 .nc:            move.l  a3,a4
                 move.w  d2,d7
-.px:            move.w  (a4),d0
-                cmp.w   #BK_KEY,d0
-                beq.s   .k
+                move.w  #BK_KEY,d1
+                cmp.l   #-1,a5
+                beq.s   .one
+.two:           move.w  (a4)+,d0                ; line with a copy : both
+                cmp.w   d1,d0
+                beq.s   .t1
                 move.w  d0,(a0)
-                cmp.l   #-1,a5
-                beq.s   .k
                 move.w  d0,(a5)
-.k:             move.w  #BK_KEY,(a4)+           ; (tmpbuf cleaned)
-                addq.l  #2,a0
-                cmp.l   #-1,a5
-                beq.s   .k2
+                move.w  d1,-2(a4)               ; (tmpbuf cleaned)
+.t1:            addq.l  #2,a0
                 addq.l  #2,a5
-.k2:            dbra    d7,.px
+                dbra    d7,.two
+                bra.s   .k2
+.one:           move.w  (a4)+,d0                ; line without a copy
+                cmp.w   d1,d0
+                beq.s   .o1
+                move.w  d0,(a0)
+                move.w  d1,-2(a4)
+.o1:            addq.l  #2,a0
+                dbra    d7,.one
+.k2:
                 lea     LINEB(a3),a3
                 addq.l  #1,d4
                 dbra    d3,.ln

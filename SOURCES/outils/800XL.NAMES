@@ -1,0 +1,9 @@
+# names of the chips of the Atari 800XL (Marek L's remake, silkscreen U..)
+# x_mm   y_mm    name          (front row, left to right : GTIA ANTIC 6502 PIA)
+96.8    200.1   GTIA          # U17
+160.1   200.1   ANTIC         # U7
+223.4   200.1   6502C         # U8 (SALLY)
+290.7   200.1   PIA           # U23
+290.7   167.9   POKEY         # U22
+306.0   101.9   OS_ROM        # U5  (16 KiB, 28 pins)
+308.5   82.1    BASIC_ROM     # U4  (8 KiB, 24 pins)

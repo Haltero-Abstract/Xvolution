@@ -66,27 +66,33 @@ cut_remove:
                 move.l  (sp)+,a0
                 rts
 
-; cut_show : the main loop gives the next picture (a6 = scr_show = top-left
-;   of the board picture, a0 = band buffer) ; taken at the next VBL
-cut_show:
-                move.w  sr,-(sp)
-                or.w    #$0700,sr
-                move.l  scr_show,cut_pf
-                move.l  cut_bnew,cut_band
-                move.w  (sp)+,sr
-                rts
-
 ; cut_vbl70 : VBL vector : split set at once, then the old VBL routine
 cut_vbl70:
                 bsr.s   cut_vbl
                 move.l  cut_oldvbl,-(sp)
                 rts
 
-; cut_vbl : at the start of the VBL (supervisor)
+; cut_vbl : at the start of the VBL (supervisor) : VBL counted ; in game,
+;   the picture waiting (pend_pf, given by the main loop) is taken if the
+;   one shown has been there FPS_DIV VBL (triple buffering), then the
+;   video base is written
 cut_vbl:
+                addq.l  #1,vbl_cnt
                 tst.w   cut_act
                 beq.s   .x
-                clr.b   $fffffa1b.w             ; Timer B stopped
+                tst.l   pend_pf
+                beq.s   .s
+                move.l  d0,-(sp)
+                move.l  vbl_cnt,d0
+                sub.l   shown_at,d0
+                cmp.l   #FPS_DIV,d0
+                blt.s   .w
+                move.l  pend_pf,cut_pf          ; the new picture
+                move.l  pend_band,cut_band
+                clr.l   pend_pf
+                move.l  vbl_cnt,shown_at
+.w:             move.l  (sp)+,d0
+.s:             clr.b   $fffffa1b.w             ; Timer B stopped
                 tst.w   cut_on
                 bne.s   .c
                 move.b  cut_pf+1,$ffff8201.w    ; no split : base = the picture
@@ -160,6 +166,10 @@ cut_timerb:
 cut_oldvec:     ds.l    1
 cut_slot:       ds.l    1
 cut_oldvbl:     ds.l    1                       ; TOS VBL vector
+vbl_cnt:        ds.l    1                       ; VBL counter (ours)
+pend_pf:        ds.l    1                       ; picture waiting for its VBL (0 : none)
+pend_band:      ds.l    1                       ;  its band (split)
+shown_at:       ds.l    1                       ; vbl_cnt when the picture was shown
 cut_pf:         ds.l    1                       ; picture (top-left) shown
 cut_pfl:        ds.l    1                       ;  its line TOP_H
 cut_band:       ds.l    1                       ; band buffer shown
@@ -176,7 +186,8 @@ cut_olddr:      ds.b    1
 cut_oldie:      ds.b    1
 cut_oldim:      ds.b    1
                 even
-bandb0:         ds.b    (TOP_H+CUT_MARG)*LINEB             ; the 2 band buffers (one per
-bandb1:         ds.b    (TOP_H+CUT_MARG)*LINEB             ;  screen)
+bandb0:         ds.b    (TOP_H+CUT_MARG)*LINEB  ; the 3 band buffers (one per
+bandb1:         ds.b    (TOP_H+CUT_MARG)*LINEB  ;  screen)
+bandb2:         ds.b    (TOP_H+CUT_MARG)*LINEB
                 even
                 section text

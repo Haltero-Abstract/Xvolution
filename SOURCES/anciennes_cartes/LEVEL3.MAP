@@ -1,0 +1,248 @@
+; SHOTEMUP level map - made by PCB2MAP.PY from a real Atari board
+; source : motherboard.kicad_pcb
+; scale 4.50 mm per tile, board turned 90 degrees, columns 11..50 of 56 kept
+; components omitted : A=4 D=6 G=2 H=1 K=191 N=6 Q=1 R=166 U=1 V=5 Z=16
+; see CREDITS.TXT for the licences of the source boards
+SEU 1
+THEME ste
+SIZE 40 98
+oooooooooooooooooooo############oo#ooooo
+o##################o############o#######
+|###oOr7#####o7####o#oooo#oo#oo#o#######
+|rTTWWW3##r--TW----a-a--T7####ooo#######
+LWW3pppoo-Woo+T---------WJ###o####r----o
+o--W-To#p##oaWJ######ooo#ooo#L-o#rJpp###
+o---7La-a--T---o###O#||ETWWJrT---WTTo#OO
+o-a-W----hhW--o######||E+T--WW-o##LW7##o
+rTTT-T7#o--T-T--a7###|v|EJr-o##po-7#L--J
+LWWWT+J#o--Jr+T-hW---WW+3#|pp##p##L7o--o
+r-o#L+orT-h-W++T--hhh--+3rJ#p#r---oL---o
+L-7o-W-++T-hT+WWTT-hhhhWWJ##o-+T--a---o#
+o-3rTT-JE+-aWJr-+Whhhhh--T7pooEJpppp##p#
+o-JEWW--3|##orWh+T--hhh-7|Eop#o#o#######
+o--W--T-Ji##|ET-+Wor-h-TWWWopo#p|#####p#
+oaha--W-TW--3oL-+--+--T+ToropL--Jpppoo-7
+o-a-o#p#o##o|oT-+hh+hhW+WTW-a7o#####L-7o
+o-hh-T--ao#EWTWTWhh+hh-J#L--aWWToro###oo
+oahhh+--o##L7L-W--hW----7raT---W-W7#pppo
+r--h-JoTT-T-W---or----7#LWaW--T-T-+----o
+o#o----WJpo##o7#o+TT-hWT7p##ppL-W7La---o
+oa---TT------aW--W++h-T+3###r-aT-+-To###
+oT-TTW+TT-h-hh----WW-T+++7##L-hW-WhW--o#
+#La3ET+++hhT-hhTTTT-7|vv|E7#o-a7oT-----7
+##o+W++++h-3ra-WW++7EWWJoL3#p##LTJo7o-TJ
+oooJr++JL--+WhT7#L+W3#####o#p##po##oo-Jp
+#oor++W--o#E-h++--WT3###o##r-7#o-o#pp##p
+ra-W++7####E-h++ahTWJ###|##|o|#p#p#oa--o
+ETT-WWJr---Wa-W+T-J#####|##|||#p#o---7##
+E+J####ora--7o-WJp######|##|v|#po---oo##
+EJ#r---TWoo#o#r---ao#oor+7r+3|#p########
+o#r+T-hWTTJo--Jp#o-a-W+++W++JL--TTT-TTo#
+oT+++T--W+aa-7p##rT--T+WW-WWa-hhWJL-WWo#
+o|||E+T-aWahT3#o-+J##L+----T--a-aT-oo#o7
+|ooooL+h--TaWW7##|####L--o#L----aJo-Wa-3
+|##o##LahhWh-oL--J#O#####o7###o--7#####|
+|#rW-oo-hh-ah-T7#####p####L--oo--Wo#O#Oi
+LoET-o#o---T-hWW7####r---ao###o7#oo###r3
+o7|iro#o-TT+T--oL--T-Wha----o#o+--7p#oEJ
+oJ|E+or-h++++---T--W---7######o+-TWo#EJo
+r7|E+a3o-+++W---Whh---hW----oooL-J#oaWT3
+L+3|E7E7#|E+7##o-a--oo-o##o-o#psss##o-J|
+oW+++3EW-3E+J##o7####o-o##o-o##sss##p##o
+rT++W+W--3E+o##o+7##p#########pp#p##p##p
+LW+JrW-7#E++7##oW+T---------o#pp##ppp##p
+o-WaJ##L7E++3##o-W+--h------o##po----o##
+o-7###o#||L+J##o--+T-hh---h-o####oT-o###
+oTW---WoLW7L7##r-hW+T-h-----o#pp#oW7#o7#
+r+7##O####L7L--WhhT++T-o##o-o####oooo-J#
+E++7######oWahh---+W3L------o##p#####rao
+L++3#####o-a----o#LoET-ot#o-T----opoo|##
+o+++T7##########o-o#EWh-----3#r------3##
+r++++J#####r---T--7#ET-o#to-3rJp##p##o##
+L+3L+oro##oJr-h+a-+7|La-----3|p#######ro
+oL+7L7Eo###oWT-W-ooLW-T--T--3|#pp####r3o
+o#L+TJEoo##t#L7tto---hWahW--3|o-o###pE3|
+o7#LW-W7io#o-aWaT--T-----a--WW---o##r+3o
+oW---T-W++------Wo#L7p####p###r-aa-T+WJo
+o-o##L--WW---7####r-+--7po-o##o#o-hWJ##o
+pr-o#####r-o#o##raWhWa-W-T-----------o##
+oW-T----aJrT----WTT-TT7#rJoTaT-h-T7#####
+op#o#####r+W-oo--++-++J#ooTW-Jo-T++T-o##
+LT-------+J####r-J|#|E----+-aa--++WW---o
+o+---T-haJ#o--aW--J#L+hhhh+oo-TTW+-aToro
+o3###L-ha-o######o-7#L-hh-+T-TWWTW-aWaWo
+oJ###oT-o###r---oooo#oaa-TW+7La-WTahaop#
+oooa-T+ha---Whh-o########|#L+-hh-+-----o
+oT--a+Whhhhh-h-o#####o-o#E-aWT-hh+--7ro#
+r+7or+-ahhaa------T---ha-W-TT+T-aW-h+W-7
+LW3EW+hT--7#r7###o3##r----T+++W--TT-W-a3
+o-WW-WhWhhW-W3t##oW--W---h+3EW-hh++TaT-3
+o-T-h-h-hh-ha3#######oT---W3Eahhh++WTW-3
+o-WhhT-hhhhhh+-a----7oWhh-oEWhhh-+WT+TT3
+raahhW--a-a--J######L--hh-oL-hhhTWTWW++J
+L-----o######oa--or----a--------J#LT-W+7
+o---TaT---aaa--a--WaTTT-T-----T-oo-W--WJ
+o---WhW---7#########LWW-WhhTTaW-7##o--o#
+o-a-------Wo#######O####o--W+h-hW---hao#
+#############o---7###o-----7L-hha--T-o##
+ooooooo#####oTahT+---T--o##L--h---oo#oTo
+######o####o-WT-W+hhhWhTT---Ta--oo-7#oEo
+######o##r--T-Wh-+hhh-h++hhh+T--oo7La3|#
+######o#o+ah+hT-h+hhhT-+Whh-+Wa--a+-a+Jo
+######o#o3o-+hWhhWh-h+h+T-aoLa--TaW-TJ#o
+######o#o+-h+hT-ha-T-+h+WT---7ooL-T-3#oo
+######o#oWhhW-WhhaT+h+h+-Whao|E+orJpE-To
+######o#o-hhT-T--oE+hW-Whaaor++Jr3#r3oW7
+######o#o---W-Wh-o|Eaa7r-T-oi|LTWJ#||o-J
+######o#oT-h-h-hh-3|r-WWhWhT3|#L--TW3###
+######o#oWT--hhhhhW3LT--h--W3L----J#|###
+######o##rWaT--aaa-W-Wh-ha7#o####r-o|###
+######o##|##|########oa--7|#o##rTW7p|###
+######o#oJ#oWo#o#####oo-TJ|#|r-WWaW-J###
+######o##oaT--a3###O#Ea-+7LaWJo-----aTo#
+######o###oW---+7####ET-WJ#pr--7raT-aWa7
+######o########|L----WWh--aaW--WWoL-T--J
+######o########L---------------o####L--o
+######oooooooooooooooooooooooooooooooooo
+C V 34 0
+C R 14 1
+C O 12 2
+C R 15 3
+C H 24 3
+C N 9 4
+C N 5 5
+C D 8 6
+C R 12 6
+C Z 31 7
+C R 12 8
+C A 0 9
+C D 1 9
+C D 4 9
+C Z 34 9
+C A 6 10
+C D 29 10
+C Z 31 10
+C Z 38 12
+C D 14 13
+C D 17 13
+C Z 35 13
+C Z 12 14
+C M 23 14
+C M 25 14
+C Z 6 15
+C Z 9 15
+C Z 35 16
+C N 0 17
+C D 4 17
+C R 6 18
+C O 30 19
+C D 36 19
+C Z 0 20
+C R 8 20
+C O 33 20
+C Z 25 21
+C Z 31 22
+C R 0 23
+C Z 34 23
+C O 1 24
+C R 9 24
+C N 12 24
+C X 9 25
+C Z 0 26
+C U 12 26
+C R 15 26
+C Q 21 26
+C N 32 26
+C N 6 27
+C Z 37 27
+C R 10 28
+C R 13 28
+C U 16 28
+C U 33 28
+C R 4 29
+C R 9 30
+C R 18 30
+C M 36 30
+C Z 29 31
+C X 34 31
+C R 16 32
+C U 28 34
+C N 30 34
+C Q 2 36
+C Z 11 36
+C Z 16 36
+C U 34 36
+C U 34 38
+C Z 38 39
+C R 17 40
+C G 19 40
+C U 33 40
+C R 29 41
+C R 17 42
+C G 25 42
+C R 34 42
+C Z 38 42
+C Z 32 44
+C R 35 45
+C D 32 46
+C Z 34 47
+C U 39 48
+C H 35 49
+C D 11 50
+C D 14 50
+C D 16 50
+C R 38 50
+C A 5 51
+C R 9 52
+C Z 31 52
+C Z 35 52
+C Z 19 53
+C A 7 54
+C N 32 55
+C R 13 57
+C A 3 58
+C R 14 59
+C H 31 59
+C H 23 60
+C H 25 61
+C D 30 61
+C R 27 63
+C R 34 64
+C P 2 65
+C X 18 65
+C P 13 66
+C P 21 67
+C D 30 67
+C D 34 67
+C R 2 71
+C R 3 73
+C D 30 74
+C R 38 74
+C R 22 75
+C D 34 75
+C X 28 76
+C R 21 77
+C R 36 77
+C U 38 79
+C D 34 80
+C U 38 81
+C D 21 82
+C D 25 82
+C D 9 83
+C D 14 83
+C R 38 83
+C Q 29 85
+C D 34 85
+C R 16 86
+C U 37 86
+C X 37 87
+C H 25 89
+C D 21 90
+C H 25 90
+C A 24 91
+C R 9 92
+C H 26 92
+C D 34 92
+C H 11 94
+C Z 28 95
+END
